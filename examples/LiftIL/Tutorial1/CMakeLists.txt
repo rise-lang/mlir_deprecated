@@ -3,7 +3,7 @@ set(LLVM_LINK_COMPONENTS
   )
 
 add_lift_target(lift-tut1
-  liftTut1.cpp
+        ../../../lib/Dialect/Lift/liftTut1.cpp
   parser/AST.cpp
   mlir/LiftDialect.cpp
   mlir/MLIRGen.cpp
