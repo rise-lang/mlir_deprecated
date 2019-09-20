@@ -24,7 +24,7 @@
 #ifndef MLIR_TUTORIAL_LIFT_AST_H_
 #define MLIR_TUTORIAL_LIFT_AST_H_
 
-#include "lift/Lexer.h"
+#include "Lexer.h"
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"

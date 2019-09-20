@@ -20,9 +20,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lift/MLIRGen.h"
-#include "lift/AST.h"
-#include "lift/Dialect.h"
+#include "mlir/Dialect/Lift/MLIRGen.h"
+#include "mlir/Dialect/Lift/AST.h"
+#include "mlir/Dialect/Lift/Dialect.h"
 
 #include "mlir/Analysis/Verifier.h"
 #include "mlir/Dialect/StandardOps/Ops.h"

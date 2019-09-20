@@ -23,8 +23,8 @@
 #ifndef MLIR_TUTORIAL_LIFT_PARSER_H
 #define MLIR_TUTORIAL_LIFT_PARSER_H
 
-#include "lift/AST.h"
-#include "lift/Lexer.h"
+#include "AST.h"
+#include "Lexer.h"
 
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"

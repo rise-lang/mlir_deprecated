@@ -19,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lift/AST.h"
+#include "mlir/Dialect/Lift/AST.h"
 
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/raw_ostream.h"

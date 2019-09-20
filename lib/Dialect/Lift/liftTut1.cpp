@@ -19,9 +19,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lift/Dialect.h"
-#include "lift/MLIRGen.h"
-#include "lift/Parser.h"
+#include "mlir/Dialect/Lift/Dialect.h"
+#include "mlir/Dialect/Lift/MLIRGen.h"
+#include "mlir/Dialect/Lift/Parser.h"
 #include <memory>
 
 #include "mlir/Analysis/Verifier.h"

@@ -20,7 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lift/Dialect.h"
+#include "mlir/Dialect/Lift/Dialect.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/StandardTypes.h"
