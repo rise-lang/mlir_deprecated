@@ -1,3 +1,7 @@
+### Types
+* Types are registered in Types.h
+* Complex types need a custom TypeStorage struct, which defines constraints for this type e.g. uniqueing -> these structs are defined in TypeDetail.h
+
 ### Pitfalls when registering a new dialect:
 * To introduce custim types it is neccessary to call `DEFINE_SYM_KIND_RANGE(MY_DIALECT)` in _include/mlir/IR/DialectSymbolRegistry.def_
 
