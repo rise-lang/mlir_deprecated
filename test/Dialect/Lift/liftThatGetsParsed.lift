@@ -1,0 +1,9 @@
+# User defined generic function that operates on unknown shaped arguments.
+# This is a kind of Lift language, that can be parsed by the toy_example lexer and parser
+# For now we use this structure to keep the simple lexer and parser.
+
+# TODO: Define all the things, so this works with -emit=mlir
+def dotProduct(a, b) {
+    return reduce(add, 0, map(mult, zip(a, b)));
+}
+
