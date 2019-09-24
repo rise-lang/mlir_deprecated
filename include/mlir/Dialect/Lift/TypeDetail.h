@@ -23,6 +23,42 @@ using llvm::Twine;
 namespace lift {
 namespace detail {
 
+//#TODO: change all Data to FunctionType
+struct LiftFunctionTypeStorage : public mlir::TypeStorage {
+    LiftFunctionTypeStorage(FunctionType input, FunctionType output) : input(input), output(output) {}
+
+    using KeyTy = std::pair<FunctionType, FunctionType>;
+
+    bool operator==(const KeyTy &key) const {
+        return key == KeyTy(input, output);
+    }
+
+    static llvm::hash_code hashKey(const KeyTy &key) {
+        return llvm::hash_combine(key.first, key.second);
+    }
+
+    static KeyTy getKey(FunctionType input, FunctionType output) {
+        return KeyTy(input, output);
+    }
+
+    static LiftFunctionTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+            const KeyTy &key) {
+        return new(allocator.allocate<LiftFunctionTypeStorage>()) LiftFunctionTypeStorage(key.first, key.second);
+    }
+
+    FunctionType input;
+    FunctionType output;
+};
+
+
+
+
+
+
+
+
+
+
 
 /// This class holds the implementation of the LiftArrayType.
 /// It is intended to be uniqued based on its content and owned by the context.

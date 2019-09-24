@@ -18,6 +18,7 @@ namespace lift {
 
 namespace detail {
 struct LiftArrayTypeStorage;
+struct LiftFunctionTypeStorage;
 }
 
 /// LLVM-style RTTI: one entry per subclass to allow dyn_cast/isa.
@@ -26,6 +27,8 @@ enum LiftTypeKind {
             LIFT_KIND = mlir::Type::FIRST_LIFT_TYPE,
     LIFT_NAT,
     LIFT_DATA,
+    LIFT_FLOAT,
+    LIFT_FUNCTIONTYPE,
     LIFT_ARRAY,
 };
 
@@ -60,15 +63,71 @@ public:
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
     /// uniquing purposes.
-    static Kind get(mlir::MLIRContext *context) {
+    static Nat get(mlir::MLIRContext *context) {
         // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
         // of this type.
         return Base::get(context, LiftTypeKind::LIFT_NAT);
     }
 };
 
+class Data : public mlir::Type::TypeBase<Data, Kind> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_DATA; }
+
+    /// This method is used to get an instance of the 'SimpleType'. Given that
+    /// this is a parameterless type, it just needs to take the context for
+    /// uniquing purposes.
+    static Data get(mlir::MLIRContext *context) {
+        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
+        // of this type.
+        return Base::get(context, LiftTypeKind::LIFT_DATA);
+    }
+};
+
+class Float : public mlir::Type::TypeBase<Float, Data> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_FLOAT; }
+
+    /// This method is used to get an instance of the 'SimpleType'. Given that
+    /// this is a parameterless type, it just needs to take the context for
+    /// uniquing purposes.
+    static Float get(mlir::MLIRContext *context) {
+        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
+        // of this type.
+        return Base::get(context, LiftTypeKind::LIFT_FLOAT);
+    }
+};
+
+class FunctionType : public mlir::Type::TypeBase<FunctionType, Data, detail::LiftFunctionTypeStorage> {
+public:
+    using Base::Base;
+
+    static bool kindof(unsigned kind) {return kind == LiftTypeKind::LIFT_FUNCTIONTYPE;}
+
+    static FunctionType get(mlir::MLIRContext *context,
+                            FunctionType input, FunctionType output);
+
+   static FunctionType getChecked(mlir::MLIRContext *context, FunctionType input, FunctionType output,
+           mlir::Location location);
 
 
+   static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
+                                                            mlir::MLIRContext *context,
+                                                           FunctionType input, FunctionType output);
+
+    FunctionType getInput();
+    FunctionType getOutput();
+};
 
 
 
