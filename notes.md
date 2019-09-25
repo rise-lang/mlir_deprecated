@@ -1,7 +1,7 @@
 ### Types
 * Types are registered in Types.h
 * Complex types need a custom TypeStorage struct, which defines constraints for this type e.g. uniqueing -> these structs are defined in TypeDetail.h
-* constants like int x = 2 can be defined with the [_constant_](https://github.com/tensorflow/mlir/blob/master/g3doc/Dialects/Standard.md#constant-operation) operation.
+* constants like `int x = 2` can be defined with the [_constant_](https://github.com/tensorflow/mlir/blob/master/g3doc/Dialects/Standard.md#constant-operation) operation e.g. `%x = lift.constant 42 : int`, or `%x = "lift.constant"()(value: 2} : int`
 
 ### Pitfalls when registering a new dialect:
 * To introduce custim types it is neccessary to call `DEFINE_SYM_KIND_RANGE(MY_DIALECT)` in _include/mlir/IR/DialectSymbolRegistry.def_
