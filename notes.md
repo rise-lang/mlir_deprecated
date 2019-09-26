@@ -2,6 +2,8 @@
 * Should Lift Primitives be MLIR Ops? -probably yes
 * In Standard_Dialect/Toy_Tutorial they use a `constant` operation to enable the definition of constants
 
+* Do we have to extend the AST with Nodes to support Lift primitives? Or can they opssiby be modelled with `Expr_Call`?
+Is this even what we want? I think so
 
 
 #### TableGen
