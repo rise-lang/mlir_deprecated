@@ -1,5 +1,9 @@
 ### Questions
-* Should Lift Primitives be MLIR Ops?
+* Should Lift Primitives be MLIR Ops? -probably yes
+* In Standard_Dialect/Toy_Tutorial they use a `constant` operation to enable the definition of constants
+
+
+
 #### TableGen
 * execute here ..../llvm-project/llvm/projects/mlir/include/ with
 `../../../cmake-build-debug/bin/mlir-tblgen --gen-op-decls mlir/Dialect/LoopOps/LoopOps.td`
