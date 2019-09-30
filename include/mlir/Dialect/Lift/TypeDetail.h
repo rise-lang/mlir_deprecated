@@ -23,7 +23,6 @@ using llvm::Twine;
 namespace lift {
 namespace detail {
 
-//#TODO: change all Data to FunctionType
 struct LiftFunctionTypeStorage : public mlir::TypeStorage {
     LiftFunctionTypeStorage(FunctionType input, FunctionType output) : input(input), output(output) {}
 

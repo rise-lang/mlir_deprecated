@@ -51,6 +51,9 @@ LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
 mlir::Type LiftDialect::parseType(StringRef tyData, mlir::Location loc) const {
   // Sanity check: we only support array or array<...>
 
+//  if (tyData.startswith("function")) {
+//      return
+//  }
 
   if (tyData.startswith("float")) {
 //      tyData = tyData.drop_front(StringRef("float").size());

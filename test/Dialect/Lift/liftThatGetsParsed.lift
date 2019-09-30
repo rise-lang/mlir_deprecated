@@ -3,7 +3,16 @@
 # For now we use this structure to keep the simple lexer and parser.
 
 # TODO: Define all the things, so this works with -emit=mlir
+# HighLevel
 def dotProduct(a, b) {
     return reduce(add, 0, map(mult, zip(a, b)));
 }
 
+# mlir
+func dotProduct(%arg0: !lift.array, %arg1: !lift.array) {
+    %zipped = zip(%arg0, %arg1);
+    %product = map(mult, %zipped);
+    %result = reduce(add, 0, %product);
+
+    return %result;
+}

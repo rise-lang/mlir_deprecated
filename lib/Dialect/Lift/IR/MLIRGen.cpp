@@ -66,7 +66,6 @@ namespace {
 class MLIRGenImpl {
 public:
   MLIRGenImpl(mlir::MLIRContext &context) : context(context) {}
-
   /// Public API: convert the AST for a Lift module (source file) to an MLIR
   /// Module.
   mlir::OwningModuleRef mlirGen(ModuleAST &moduleAST) {

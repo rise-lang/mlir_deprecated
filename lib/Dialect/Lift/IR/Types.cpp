@@ -6,6 +6,7 @@
 #include "mlir/Dialect/Lift/TypeDetail.h"
 #include "mlir/Dialect/Lift/Dialect.h"
 
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Support/STLExtras.h"
@@ -60,15 +61,13 @@ mlir::LogicalResult FunctionType::verifyConstructionInvariants(llvm::Optional<ml
                                                                mlir::MLIRContext *context,
                                                                FunctionType input, FunctionType output) {
     if (!input.isa<FunctionType>()) {
-//            if (loc)
-//                context->emitError(loc) << "input is not a valid Type to construct FunctionType";
+        if (loc)
+            emitError(loc.getValue(), "input is not a valid Type to construct FunctionType");
         return mlir::failure();
     }
     if (!output.isa<FunctionType>()) {
-        ///For some reason emitError is not defined.
-//            if (loc)
-//                context->emitError(loc) << "output is not a valid Type to construct FunctionType";
-//                  looks like the call to context is not needed, but then we ant use llvm::Optional anymore. Look into this
+        if (loc)
+            emitError(loc.getValue(), "output is not a valid Type to construct FunctionType");
         return mlir::failure();
     }
     return mlir::success();

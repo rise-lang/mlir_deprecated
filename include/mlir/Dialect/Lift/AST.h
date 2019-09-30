@@ -35,7 +35,7 @@ namespace lift {
 
 /// A variable
 struct VarType {
-  enum { TY_FLOAT, TY_INT } elt_ty;
+  enum { TY_FLOAT, TY_INT, TY_LIFT } elt_ty;
   std::vector<int> shape;
 };
 

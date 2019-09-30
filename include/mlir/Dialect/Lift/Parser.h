@@ -34,6 +34,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 namespace lift {
 
@@ -295,7 +296,7 @@ private:
 
   /// type ::= < shape_list >
   /// shape_list ::= num | num , shape_list
-  std::unique_ptr<VarType> ParseType() {
+  std::unique_ptr<VarType> ParseToyArrayType() {
     if (lexer.getCurToken() != '<')
       return parseError<VarType>("<", "to begin type");
     lexer.getNextToken(); // eat <
@@ -315,6 +316,31 @@ private:
     return type;
   }
 
+    /// type ::= < shape_list >
+    /// shape_list ::= num | num , shape_list
+    std::unique_ptr<VarType> ParseExplicitTypeDef() {
+        if (lexer.getCurToken() != ':')
+            return parseError<VarType>(":", "to begin type");
+        auto loc = lexer.getLastLocation();
+
+        lexer.getNextToken(); // eat :
+
+        auto type = std::make_unique<VarType>();
+
+        if (lexer.getCurToken() == tok_identifier) {
+            llvm::errs() << "Lift Type: " << lexer.getCurToken();
+            type->elt_ty=VarType::TY_LIFT;
+        }
+
+//        lexer.getNextToken();
+
+//        if (lexer.getCurToken() != ' ')
+//            return parseError<VarType>("space", "to end type");
+//        lexer.getId()
+        lexer.getNextToken();
+        return type;
+    }
+
   /// Parse a variable declaration, it starts with a `var` keyword followed by
   /// and identifier and an optional type (shape specification) before the
   /// initializer.
@@ -333,10 +359,18 @@ private:
 
     std::unique_ptr<VarType> type; // Type is optional, it can be inferred
     if (lexer.getCurToken() == '<') {
-      type = ParseType();
+      type = ParseToyArrayType();
       if (!type)
         return nullptr;
     }
+
+    ///We want to have other types besides arrays.
+    if (lexer.getCurToken() == ':') {
+        type = ParseExplicitTypeDef();
+        if (!type)
+            return nullptr;
+    }
+
 
     if (!type)
       type = std::make_unique<VarType>();
