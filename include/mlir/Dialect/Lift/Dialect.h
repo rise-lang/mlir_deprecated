@@ -37,7 +37,7 @@
 
 namespace mlir {
 class Builder;
-}
+
 
 namespace lift {
 
@@ -61,6 +61,6 @@ public:
     void printType(mlir::Type type, llvm::raw_ostream &os) const override;
 };
 
-} // end namespace lift
-
+} //end namespace lift
+} //end namespace mlir
 #endif // MLIR_TUTORIAL_LIFT_DIALECT_H_

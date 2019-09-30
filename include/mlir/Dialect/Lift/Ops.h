@@ -9,7 +9,10 @@
 #include "mlir/IR/Function.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
-
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/Dialect.h"
+#include "mlir/IR/OpDefinition.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -28,8 +31,14 @@
 /// result. The traits provide some utilities methods for the operation, for
 /// instance we will be able to use `getResult()`, but `getOperand()` won't be
 /// available.
-
+namespace  mlir {
 namespace lift {
+
+
+#define GET_OP_CLASSES
+
+#include "mlir/Dialect/Lift/Ops.h.inc"
+
 
 class ConstantOp : public mlir::Op<ConstantOp, mlir::OpTrait::ZeroOperands,
         mlir::OpTrait::OneResult,
@@ -94,6 +103,46 @@ public:
     /// Inherit constructor.
     using Op::Op;
 };
+
+
+/// Generic calls represent calls to a user defined function that needs to
+/// be specialized for the shape of its arguments. The callee name is attached
+/// as a literal string as an attribute. The arguments list must match the
+/// arguments expected by the callee. For example:
+///
+///   %4 = "lift.generic_call"(%1, %3) {callee: "my_func"}
+///         : (!lift.array<2, 3>, !lift.array<2, 3>) -> !lift<"array">
+///
+/// This is only valid if a function named "my_func" exists and takes two
+/// arguments.
+//class ApplyOp
+//: public mlir::Op<ApplyOp, mlir::OpTrait::NOperands<2>::Impl,
+//                mlir::OpTrait::OneResult> {
+//public:
+//    /// MLIR will use this to register the operation with the parser/printer.
+//    static llvm::StringRef getOperationName() { return "lift.apply"; }
+//
+//    /// Operations can add custom verification beyond the traits they define.
+//    mlir::LogicalResult verify();
+//
+//    /// Interface to the builder to allow:
+//    ///   mlir::Builder::create<GenericCallOp>(...)
+//    /// This method populate the `state` that MLIR use to create operations.
+//    /// The `lift.generic_call` operation accepts a callee name and a list of
+//    /// arguments for the call.
+//    static void build(mlir::Builder *builder, mlir::OperationState *state,
+//                      llvm::StringRef callee,
+//                      llvm::ArrayRef<mlir::Value *> arguments);
+//
+//    /// Return the name of the callee.
+//    llvm::StringRef getCalleeName();
+//
+//    /// Inherit constructor.
+//    using Op::Op;
+//};
+
+
+
 
 /// Return operations terminate blocks (and functions as well). They take a
 /// single argument and the type must match the function return type.
@@ -242,5 +291,6 @@ public:
 };
 
 } //end namespace lift
+} //end namespace mlir
 
 #endif //LLVM_OPS_H

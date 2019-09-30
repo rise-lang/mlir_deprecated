@@ -20,6 +20,7 @@ using llvm::SmallVector;
 using llvm::StringRef;
 using llvm::Twine;
 
+namespace mlir {
 namespace lift {
 namespace detail {
 
@@ -41,22 +42,13 @@ struct LiftFunctionTypeStorage : public mlir::TypeStorage {
     }
 
     static LiftFunctionTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
-            const KeyTy &key) {
+                                              const KeyTy &key) {
         return new(allocator.allocate<LiftFunctionTypeStorage>()) LiftFunctionTypeStorage(key.first, key.second);
     }
 
     FunctionType input;
     FunctionType output;
 };
-
-
-
-
-
-
-
-
-
 
 
 /// This class holds the implementation of the LiftArrayType.
@@ -100,7 +92,7 @@ private:
     LiftArrayTypeStorage(ArrayRef<int64_t> shape) : shape(shape) {}
 };
 
-} // namespace detail
-} // namespace lift
-
+} //end namespace detail
+} //end namespace lift
+} //end namespace mlir
 #endif //LLVM_TYPEDETAIL_H

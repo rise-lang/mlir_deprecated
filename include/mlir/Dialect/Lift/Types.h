@@ -13,7 +13,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////// Custom Types for the Lift Dialect ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-
+namespace mlir {
 namespace lift {
 
 namespace detail {
@@ -112,25 +112,23 @@ class FunctionType : public mlir::Type::TypeBase<FunctionType, Data, detail::Lif
 public:
     using Base::Base;
 
-    static bool kindof(unsigned kind) {return kind == LiftTypeKind::LIFT_FUNCTIONTYPE;}
+    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_FUNCTIONTYPE; }
 
     static FunctionType get(mlir::MLIRContext *context,
                             FunctionType input, FunctionType output);
 
-   static FunctionType getChecked(mlir::MLIRContext *context, FunctionType input, FunctionType output,
-           mlir::Location location);
+    static FunctionType getChecked(mlir::MLIRContext *context, FunctionType input, FunctionType output,
+                                   mlir::Location location);
 
 
-   static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
+    static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                             mlir::MLIRContext *context,
-                                                           FunctionType input, FunctionType output);
+                                                            FunctionType input, FunctionType output);
 
     FunctionType getInput();
+
     FunctionType getOutput();
 };
-
-
-
 
 
 /// Type for Lift arrays.
@@ -169,5 +167,6 @@ public:
 };
 
 } //end namespace lift
+} //end namespace mlir
 
 #endif //LLVM_TYPES_H

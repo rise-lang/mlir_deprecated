@@ -217,10 +217,10 @@ private:
     // support '+' and '*'.
     switch (binop.getOp()) {
     case '+':
-      return builder->create<AddOp>(location, L, R).getResult();
+      return builder->create<mlir::lift::AddOp>(location, L, R).getResult();
       break;
     case '*':
-      return builder->create<MulOp>(location, L, R).getResult();
+      return builder->create<mlir::lift::MulOp>(location, L, R).getResult();
     default:
       emitError(loc(binop.loc()), "Error: invalid binary operator '")
           << binop.getOp() << "'";
@@ -244,13 +244,13 @@ private:
     auto location = loc(ret.loc());
     // `return` takes an optional expression, we need to account for it here.
     if (!ret.getExpr().hasValue()) {
-      builder->create<ReturnOp>(location);
+      builder->create<mlir::lift::ReturnOp>(location);
       return true;
     }
     auto *expr = mlirGen(*ret.getExpr().getValue());
     if (!expr)
       return false;
-    builder->create<ReturnOp>(location, expr);
+    builder->create<mlir::lift::ReturnOp>(location, expr);
     return true;
   }
 
@@ -293,7 +293,7 @@ private:
                              .cast<mlir::DenseElementsAttr>();
 
     // Build the MLIR op `lift.constant`, only boilerplate below.
-    return builder->create<ConstantOp>(location, lit.getDims(), dataAttribute)
+    return builder->create<mlir::lift::ConstantOp>(location, lit.getDims(), dataAttribute)
         .getResult();
   }
 
@@ -330,7 +330,7 @@ private:
         return nullptr;
       }
       mlir::Value *arg = mlirGen(*call.getArgs()[0]);
-      return builder->create<TransposeOp>(location, arg).getResult();
+      return builder->create<mlir::lift::TransposeOp>(location, arg).getResult();
     }
 
     // Codegen the operands first
@@ -343,7 +343,7 @@ private:
     }
     // Calls to user-defined function are mapped to a custom call that takes
     // the callee name as an attribute.
-    return builder->create<GenericCallOp>(location, call.getCallee(), operands)
+    return builder->create<mlir::lift::GenericCallOp>(location, call.getCallee(), operands)
         .getResult();
   }
 
@@ -355,7 +355,7 @@ private:
     if (!arg)
       return false;
     auto location = loc(call.loc());
-    builder->create<PrintOp>(location, arg);
+    builder->create<mlir::lift::PrintOp>(location, arg);
     return true;
   }
 
@@ -365,7 +365,7 @@ private:
     mlir::Type elementType = mlir::FloatType::getF64(&context);
     auto attr = mlir::FloatAttr::getChecked(elementType, num.getValue(),
                                             loc(num.loc()));
-    return builder->create<ConstantOp>(location, attr).getResult();
+    return builder->create<mlir::lift::ConstantOp>(location, attr).getResult();
   }
 
   // Dispatch codegen for the right expression subclass using RTTI.
@@ -405,9 +405,9 @@ private:
       // optimized out later as needed.
       if (!vardecl.getType().shape.empty()) {
         value = builder
-                    ->create<ReshapeOp>(
+                    ->create<mlir::lift::ReshapeOp>(
                         location, value,
-                        getType(vardecl.getType()).cast<LiftArrayType>())
+                        getType(vardecl.getType()).cast<mlir::lift::LiftArrayType>())
                     .getResult();
       }
     } else {
@@ -455,7 +455,7 @@ private:
   ///   !lift.array<2, 2>
   template <typename T> mlir::Type getType(T shape) {
     SmallVector<int64_t, 8> shape64(shape.begin(), shape.end());
-    return LiftArrayType::get(&context, shape64);
+    return mlir::lift::LiftArrayType::get(&context, shape64);
   }
 
   /// Build an MLIR type from a Lift AST variable type

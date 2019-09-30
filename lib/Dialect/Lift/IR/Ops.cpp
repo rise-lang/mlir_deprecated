@@ -11,6 +11,12 @@
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "mlir/IR/AffineExpr.h"
+#include "mlir/IR/AffineMap.h"
+#include "mlir/IR/Module.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/Value.h"
+#include "mlir/Support/MathExtras.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////// Custom Operations for the Dialect /////////////////////////
@@ -22,11 +28,13 @@ using llvm::SmallVector;
 using llvm::StringRef;
 using llvm::Twine;
 
+namespace mlir {
 namespace lift {
 
 
 /// Helper to verify that the result of an operation is a Lift array type.
-template <typename T> static mlir::LogicalResult verifyLiftReturnArray(T *op) {
+template<typename T>
+static mlir::LogicalResult verifyLiftReturnArray(T *op) {
     if (!op->getResult()->getType().template isa<LiftArrayType>()) {
         std::string msg;
         raw_string_ostream os(msg);
@@ -39,7 +47,8 @@ template <typename T> static mlir::LogicalResult verifyLiftReturnArray(T *op) {
 
 /// Helper to verify that the two operands of a binary operation are Lift
 /// arrays..
-template <typename T> static mlir::LogicalResult verifyLiftBinOperands(T *op) {
+template<typename T>
+static mlir::LogicalResult verifyLiftBinOperands(T *op) {
     if (!op->getOperand(0)->getType().template isa<LiftArrayType>()) {
         std::string msg;
         raw_string_ostream os(msg);
@@ -124,6 +133,12 @@ mlir::LogicalResult ConstantOp::verify() {
     return mlir::success();
 }
 
+//void ApplyOp::build(mlir::Builder *builder, mlir::OperationState *state, llvm::StringRef callee,
+//                    llvm::ArrayRef<mlir::Value *> arguments) {
+//
+//
+//}
+
 void GenericCallOp::build(mlir::Builder *builder, mlir::OperationState *state,
                           StringRef callee, ArrayRef<mlir::Value *> arguments) {
     // Generic call always returns a generic LiftArray initially
@@ -152,7 +167,8 @@ StringRef GenericCallOp::getCalleeName() {
     return getAttr("callee").cast<mlir::StringAttr>().getValue();
 }
 
-template <typename T> static mlir::LogicalResult verifyLiftSingleOperand(T *op) {
+template<typename T>
+static mlir::LogicalResult verifyLiftSingleOperand(T *op) {
     if (!op->getOperand()->getType().template isa<LiftArrayType>()) {
         std::string msg;
         raw_string_ostream os(msg);
@@ -251,3 +267,4 @@ mlir::LogicalResult MulOp::verify() {
 }
 
 } //end namespace lift
+} //end namespace mlir

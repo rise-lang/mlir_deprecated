@@ -22,6 +22,7 @@ using llvm::SmallVector;
 using llvm::StringRef;
 using llvm::Twine;
 
+namespace mlir {
 namespace lift {
 
 
@@ -76,6 +77,7 @@ mlir::LogicalResult FunctionType::verifyConstructionInvariants(llvm::Optional<ml
 FunctionType FunctionType::getInput() {
     return getImpl()->input;
 }
+
 FunctionType FunctionType::getOutput() {
     return getImpl()->output;
 }
@@ -95,4 +97,5 @@ LiftArrayType LiftArrayType::get(mlir::MLIRContext *context,
 
 ArrayRef<int64_t> LiftArrayType::getShape() { return getImpl()->getShape(); }
 
-} //namespace lift
+} //end namespace lift
+} //end namespace mlir

@@ -21,9 +21,11 @@ add_lift_target(lift-tut1
         IR/Types.cpp
         )
 include_directories(include/)
+add_dependencies(Lift MLIRLiftOpsIncGen MLIRStandardOps LLVMSupport)
 target_link_libraries(lift-tut1
         PRIVATE
         MLIRAnalysis
         MLIRIR
         MLIRParser
-        MLIRTransforms)
+        MLIRTransforms
+        LLVMSupport)
