@@ -1,3 +1,19 @@
+03. October:
+### TableGen
+#### the good
+* now _finally_ working with the CMake build process
+* generated files look similar to generated files from other dialects.
+#### the bad (resolved)
+* first we had undefined references to ArrayRef
+* structuring of namespaces to mlir::lift around the import statements of generated files resolved this.
+#### the ugly (to be resolved)
+* now linking throws some undefined reference errors
+* could be due to further namespace issues
+* will try to remove namespace lift, it is a leftover of the Toy example
+
+
+
+old:
 ### Questions
 * Should Lift Primitives be MLIR Ops? -probably yes
 * In Standard_Dialect/Toy_Tutorial they use a `constant` operation to enable the definition of constants
@@ -13,6 +29,7 @@ otherwise includes are not found
 * Different generators can be used (e.g `--gen-op-decls`, `--gen-op-defs`, `--gen-enum-defs`)
 * This generates Ops for the LoopOps dialect. How is the then used in the dialect, should it be pasted into Ops.h? I can't find the generated output in the files for the LoopOps dialect.
 
+
 ### Types
 * Types are registered in Types.h
 * Complex types need a custom TypeStorage struct, which defines constraints for this type e.g. uniqueing -> these structs are defined in TypeDetail.h
@@ -20,7 +37,7 @@ otherwise includes are not found
 
 ### Pitfalls 
 #### when registering a new dialect:
-* To introduce custim types it is neccessary to call `DEFINE_SYM_KIND_RANGE(MY_DIALECT)` in _include/mlir/IR/DialectSymbolRegistry.def_
+* To introduce custom types it is neccessary to call `DEFINE_SYM_KIND_RANGE(MY_DIALECT)` in _include/mlir/IR/DialectSymbolRegistry.def_
 #### TableGen
 * The include statement for a Table'Gen'd file e.g. `#include "mlir/Dialect/Lift/Ops.h.inc"` has to be inside `namespace  mlir`
 
