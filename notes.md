@@ -9,7 +9,7 @@
 #### the ugly (to be resolved)
 * now linking throws some undefined reference errors
 * could be due to further namespace issues
-* will try to remove namespace lift, it is a leftover of the Toy example
+* restructuring from mlir::lift::... to just mlir::... yields the same errors
 
 
 
