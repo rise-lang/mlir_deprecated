@@ -42,25 +42,51 @@ Op<Lift_Dialect, mnemonic, traits> {
 //   * ParseResult parse${C++ class of Op}(OpAsmParser *parser,
 //                                         OperationState *result)
 // functions.
-let printer = [{ return ::print(p, *this); }];
-let verifier = [{ return ::verify(*this); }];
-let parser = [{ return ::parse$cppClass(parser, result); }];
+//let printer = [{ return ::print(p, *this); }];
+//let verifier = [{ return ::verify(*this); }];
+//let parser = [{ return ::parse$cppClass(parser, result); }];
 }
 
-def ApplyOp : Lift_Op<"apply", [NoSideEffect]> {
-    let summary = "apply operation";
-    let description = [{
-        Add description for apply here.
-    }];
+//def ApplyOp : Lift_Op<"apply", [NoSideEffect]> {
+//    let summary = "apply operation";
+//    let description = [{
+//        Add description for apply here.
+//    }];
+//
+//    let arguments = (ins
+//            FunctionType:$func,
+//            AnyType:$arg
+//            );
+//    let results = (outs FunctionType);
+//// No custom parsing/printing form.
+////let parser = ?;
+////let printer = ?;
+////
+////// Fully specified by traits.
+////let verifier = ?;
+//}
 
-    let arguments = (ins
-            FunctionType:$func,
-            AnyType:$arg
-            );
-    let results = (outs FunctionType);
 
+
+
+def LiteralOp : Lift_Op<"literal", [NoSideEffect]> {
+    let summary = "literal";
+
+    let arguments = (ins AnyAttr:$value);
+    let results = (outs AnyType);
+
+//    let builders = [OpBuilder<
+//          "Builder *builder, OperationState *result, Attribute value",
+//        [{ build(builder, result, value.getType(), value); }]>];
+
+//    let extraClassDeclaration = [{Attribute getValue() { return getAttr("value"); }
+//        /// Returns true if a constant operation can be built with the given value
+//        /// and result type.
+//        static bool isBuildableWith(Attribute value, Type type);
+//    }];
+
+//    let hasFolder = 1;
 }
-
 //def ForOp : Loop_Op<"for",
 //        [SingleBlockImplicitTerminator<"TerminatorOp">]> {
 //let summary = "for operation";

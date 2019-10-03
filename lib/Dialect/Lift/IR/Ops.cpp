@@ -31,6 +31,14 @@ using llvm::Twine;
 namespace mlir {
 namespace lift {
 
+//    static void print(OpAsmPrinter *p, ApplyOp op) {
+//        *p << "call " << op.getAttr("callee") << '(';
+//        p->printOperands(op.getOperands());
+//        *p << ')';
+////        p->printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"callee"});
+////        *p << " : ";
+////        p->printType(op.getCalleeType());
+//    }
 
 /// Helper to verify that the result of an operation is a Lift array type.
 template<typename T>
@@ -266,5 +274,10 @@ mlir::LogicalResult MulOp::verify() {
     return mlir::success();
 }
 
+
+#define GET_OP_CLASSES
+#include "mlir/Dialect/Lift/Ops.cpp.inc"
 } //end namespace lift
 } //end namespace mlir
+
+

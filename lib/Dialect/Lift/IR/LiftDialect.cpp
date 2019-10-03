@@ -43,12 +43,13 @@ namespace lift {
 /// Dialect creation, the instance will be owned by the context. This is the
 /// point of registration of custom types and operations for the dialect.
 LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
-    addOperations<ConstantOp, GenericCallOp, PrintOp,
-            TransposeOp, ReshapeOp,
-            MulOp, AddOp, ReturnOp
+    addOperations<
+//            ConstantOp, GenericCallOp, PrintOp,
+//            TransposeOp, ReshapeOp,
+//            MulOp, AddOp, ReturnOp
 //            ,
-//#define GET_OP_LIST
-//#include "mlir/Dialect/Lift/Ops.cpp.inc"
+#define GET_OP_LIST
+#include "mlir/Dialect/Lift/Ops.cpp.inc"
             >();
     addTypes<LiftArrayType, Kind, Nat, Data, Float, FunctionType>();
 }
