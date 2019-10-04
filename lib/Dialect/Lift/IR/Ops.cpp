@@ -31,6 +31,23 @@ using llvm::Twine;
 namespace mlir {
 namespace lift {
 
+
+
+    static void print(OpAsmPrinter *p, LiteralOp &op) {
+        *p << "literal ";
+        p->printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"value"});
+
+
+        if (op.getAttrs().size() > 1)
+            *p << ' ';
+        p->printAttribute(op.getValue());
+
+        // If the value is a symbol reference, print a trailing type.
+        if (op.getValue().isa<SymbolRefAttr>())
+            *p << " : " << op.getType();
+    }
+
+
 //    static void print(OpAsmPrinter *p, ApplyOp op) {
 //        *p << "call " << op.getAttr("callee") << '(';
 //        p->printOperands(op.getOperands());

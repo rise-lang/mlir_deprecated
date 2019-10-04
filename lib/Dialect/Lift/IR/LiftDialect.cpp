@@ -44,13 +44,12 @@ namespace lift {
 /// point of registration of custom types and operations for the dialect.
 LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
     addOperations<
-//            ConstantOp, GenericCallOp, PrintOp,
-//            TransposeOp, ReshapeOp,
-//            MulOp, AddOp, ReturnOp
-//            ,
+            ConstantOp, GenericCallOp, PrintOp,
+            TransposeOp, ReshapeOp,
+            MulOp, AddOp, ReturnOp,
 #define GET_OP_LIST
 #include "mlir/Dialect/Lift/Ops.cpp.inc"
-            >();
+    >();
     addTypes<LiftArrayType, Kind, Nat, Data, Float, FunctionType>();
 }
 
@@ -62,9 +61,17 @@ LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
 mlir::Type LiftDialect::parseType(StringRef tyData, mlir::Location loc) const {
     // Sanity check: we only support array or array<...>
 
-//  if (tyData.startswith("function")) {
-//      return
-//  }
+
+    //Discuss how a function type looks like.
+    //example
+    //%id = !lift.fun{
+    //          ^b(%a: !lift.nat):
+    //          return %a
+    //       }
+    //we have to be able to parse this here
+  if (tyData.startswith("fun")) {
+//      return FunctionType::get(getContext());
+  }
 
     if (tyData.startswith("float")) {
 //      tyData = tyData.drop_front(StringRef("float").size());
@@ -74,7 +81,14 @@ mlir::Type LiftDialect::parseType(StringRef tyData, mlir::Location loc) const {
         //TODO: Check, that float is structured correctly
         return Float::get(getContext());
     }
-
+    if (tyData.startswith("nat")) {
+//      tyData = tyData.drop_front(StringRef("float").size());
+//
+//      if (tyData.empty())
+//          emitError(loc, "Float with no value given");
+        //TODO: Check, that float is structured correctly
+        return Nat::get(getContext());
+    }
     if (tyData.startswith("array")) {
         // Drop the "array" prefix from the type name, we expect either an empty
         // string or just the shape.
@@ -141,6 +155,14 @@ void LiftDialect::printType(mlir::Type type, raw_ostream &os) const {
         }
         case LiftTypeKind::LIFT_FLOAT: {
             os << "float";
+            break;
+        }
+        case LiftTypeKind::LIFT_NAT: {
+            os << "nat";
+            break;
+        }
+        case LiftTypeKind::LIFT_FUNCTIONTYPE: {
+            os << "fun";
             break;
         }
     }
