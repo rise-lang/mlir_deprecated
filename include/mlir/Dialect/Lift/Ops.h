@@ -8,6 +8,7 @@
 #include "Types.h"
 #include "mlir/IR/Function.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/IR/FunctionSupport.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"

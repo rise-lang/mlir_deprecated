@@ -79,13 +79,46 @@ def LiteralOp : Lift_Op<"literal", [NoSideEffect]> {
 //          "Builder *builder, OperationState *result, Attribute value",
 //        [{ build(builder, result, value.getType(), value); }]>];
 
-//    let extraClassDeclaration = [{Attribute getValue() { return getAttr("value"); }
-//        /// Returns true if a constant operation can be built with the given value
-//        /// and result type.
-//        static bool isBuildableWith(Attribute value, Type type);
-//    }];
-
+    let extraClassDeclaration = [{Attribute getValue() { return getAttr("value"); }
+        /// Returns true if a constant operation can be built with the given value
+        /// and result type.
+        static bool isBuildableWith(Attribute value, Type type);
+    }];
 //    let hasFolder = 1;
+}
+
+def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
+def LambdaType : Type<CPred<"$_self.isa<LambdaType>()">, "lambda type">;
+def KindType : Type<CPred<"$_self.isa<Kind>()">, "kind type">;
+def SubclassOfKindType : AnyTypeOf<[KindType, NatType, LambdaType], "subclass of kind type">;
+//TODO: add other Types
+
+
+def LambdaOp : Lift_Op<"lambda", [SingleBlockImplicitTerminator<"LiftTerminatorOp">]> {
+    let summary = "lambda";
+
+    let arguments = (ins Variadic<NatType>:$inputs);
+    let regions = (region SizedRegion<1>:$region);
+    let results = (outs LambdaType:$lambda);
+}
+
+def ApplyOp : Lift_Op<"apply", []> {
+    let summary = "apply";
+    let arguments = (ins Variadic<NatType>:$inputs, SubclassOfKindType:$lambda);
+    let results = (outs SubclassOfKindType:$result);
+}
+
+def LiftTerminatorOp : Lift_Op<"terminator", [Terminator]> {
+    let summary = "lift terminator operation";
+    let description = [{
+}];
+
+// No custom parsing/printing form.
+let parser = ?;
+let printer = ?;
+
+// Fully specified by traits.
+let verifier = ?;
 }
 //def ForOp : Loop_Op<"for",
 //        [SingleBlockImplicitTerminator<"TerminatorOp">]> {

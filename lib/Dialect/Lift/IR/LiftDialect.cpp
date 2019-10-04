@@ -50,7 +50,7 @@ LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
 #define GET_OP_LIST
 #include "mlir/Dialect/Lift/Ops.cpp.inc"
     >();
-    addTypes<LiftArrayType, Kind, Nat, Data, Float, FunctionType>();
+    addTypes<LiftArrayType, Kind, Nat, Data, Float, LambdaType, FunctionType>();
 }
 
 
@@ -62,16 +62,13 @@ mlir::Type LiftDialect::parseType(StringRef tyData, mlir::Location loc) const {
     // Sanity check: we only support array or array<...>
 
 
-    //Discuss how a function type looks like.
-    //example
-    //%id = !lift.fun{
-    //          ^b(%a: !lift.nat):
-    //          return %a
-    //       }
-    //we have to be able to parse this here
-  if (tyData.startswith("fun")) {
-//      return FunctionType::get(getContext());
-  }
+    if (tyData.startswith("lambda")) {
+        return LambdaType::get(getContext());
+    }
+//
+//    if (tyData.startswith("fun")) {
+////      return FunctionType::get(getContext());
+//    }
 
     if (tyData.startswith("float")) {
 //      tyData = tyData.drop_front(StringRef("float").size());
@@ -159,6 +156,10 @@ void LiftDialect::printType(mlir::Type type, raw_ostream &os) const {
         }
         case LiftTypeKind::LIFT_NAT: {
             os << "nat";
+            break;
+        }
+        case LiftTypeKind ::LIFT_LAMBDA: {
+            os << "lambda";
             break;
         }
         case LiftTypeKind::LIFT_FUNCTIONTYPE: {
