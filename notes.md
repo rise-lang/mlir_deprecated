@@ -1,3 +1,6 @@
+
+
+
 03. October:
 ### TableGen
 #### the good
@@ -10,7 +13,6 @@
 * now linking throws some undefined reference errors
 * could be due to further namespace issues
 * restructuring from mlir::lift::... to just mlir::... yields the same errors
-
 
 
 old:
@@ -40,6 +42,8 @@ otherwise includes are not found
 * To introduce custom types it is neccessary to call `DEFINE_SYM_KIND_RANGE(MY_DIALECT)` in _include/mlir/IR/DialectSymbolRegistry.def_
 #### TableGen
 * The include statement for a Table'Gen'd file e.g. `#include "mlir/Dialect/Lift/Ops.h.inc"` has to be inside `namespace  mlir`
+#### custom operations
+* operations with custom syntax must not be in "", otherwise the custom parser will never be called and `parseGenericOperation` will be used.
 
 ### MLIR Questions
 * regarding Toy-Ch3: passing an ill-structured .mlir file for the Toy dialect e.g  
