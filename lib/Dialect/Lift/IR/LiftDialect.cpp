@@ -46,7 +46,7 @@ LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
     addOperations<
             ConstantOp, GenericCallOp, PrintOp,
             TransposeOp, ReshapeOp,
-            MulOp, AddOp, ReturnOp,
+            MulOp, AddOp,
 #define GET_OP_LIST
 #include "mlir/Dialect/Lift/Ops.cpp.inc"
     >();

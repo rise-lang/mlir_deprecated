@@ -151,34 +151,34 @@ public:
 
 
 
-/// Return operations terminate blocks (and functions as well). They take a
-/// single argument and the type must match the function return type.
-class ReturnOp
-        : public mlir::Op<ReturnOp, mlir::OpTrait::VariadicOperands,
-                mlir::OpTrait::ZeroResult, mlir::OpTrait::IsTerminator> {
-public:
-    static llvm::StringRef getOperationName() { return "lift.return"; }
-
-    /// Operations can add custom verification beyond the traits they define.
-    mlir::LogicalResult verify();
-
-    /// Interface to mlir::Builder::create<PrintOp>(...)
-    /// This method populate the `state` that MLIR use to create operations.
-    /// The `lift.return` operation accepts an optional single array as an argument
-    /// and does not have any returned value.
-    static void build(mlir::Builder *builder, mlir::OperationState *state,
-                      mlir::Value *value = nullptr);
-
-    /// Return true if there is a returned value.
-    bool hasOperand() { return 0 != getNumOperands(); }
-
-    /// Helper to return the optional operand. Caller must check if the operand
-    /// is present before calling this.
-    mlir::Value *getOperand() { return getOperation()->getOperand(0); }
-
-    /// Inherit constructor.
-    using Op::Op;
-};
+///// Return operations terminate blocks (and functions as well). They take a
+///// single argument and the type must match the function return type.
+//class ReturnOp
+//        : public mlir::Op<ReturnOp, mlir::OpTrait::VariadicOperands,
+//                mlir::OpTrait::ZeroResult, mlir::OpTrait::IsTerminator> {
+//public:
+//    static llvm::StringRef getOperationName() { return "lift.return"; }
+//
+//    /// Operations can add custom verification beyond the traits they define.
+//    mlir::LogicalResult verify();
+//
+//    /// Interface to mlir::Builder::create<PrintOp>(...)
+//    /// This method populate the `state` that MLIR use to create operations.
+//    /// The `lift.return` operation accepts an optional single array as an argument
+//    /// and does not have any returned value.
+//    static void build(mlir::Builder *builder, mlir::OperationState *state,
+//                      mlir::Value *value = nullptr);
+//
+//    /// Return true if there is a returned value.
+//    bool hasOperand() { return 0 != getNumOperands(); }
+//
+//    /// Helper to return the optional operand. Caller must check if the operand
+//    /// is present before calling this.
+//    mlir::Value *getOperand() { return getOperation()->getOperand(0); }
+//
+//    /// Inherit constructor.
+//    using Op::Op;
+//};
 
 /// The print builtin takes a single array argument and does not return any.
 class PrintOp : public mlir::Op<PrintOp, mlir::OpTrait::OneOperand,

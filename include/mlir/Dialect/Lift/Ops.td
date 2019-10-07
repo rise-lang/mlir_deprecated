@@ -108,7 +108,7 @@ def ApplyOp : Lift_Op<"apply", []> {
     let results = (outs SubclassOfKindType:$result);
 }
 
-def LiftTerminatorOp : Lift_Op<"terminator", [Terminator]> {
+def LiftTerminatorOp : Lift_Op<"return", [Terminator]> {
     let summary = "lift terminator operation";
     let description = [{
 }];

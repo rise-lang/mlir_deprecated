@@ -239,20 +239,20 @@ private:
     return nullptr;
   }
 
-  // Emit a return operation, return true on success.
-  bool mlirGen(ReturnExprAST &ret) {
-    auto location = loc(ret.loc());
-    // `return` takes an optional expression, we need to account for it here.
-    if (!ret.getExpr().hasValue()) {
-      builder->create<mlir::lift::ReturnOp>(location);
-      return true;
-    }
-    auto *expr = mlirGen(*ret.getExpr().getValue());
-    if (!expr)
-      return false;
-    builder->create<mlir::lift::ReturnOp>(location, expr);
-    return true;
-  }
+//  // Emit a return operation, return true on success.
+//  bool mlirGen(ReturnExprAST &ret) {
+//    auto location = loc(ret.loc());
+//    // `return` takes an optional expression, we need to account for it here.
+//    if (!ret.getExpr().hasValue()) {
+//      builder->create<mlir::lift::ReturnOp>(location);
+//      return true;
+//    }
+//    auto *expr = mlirGen(*ret.getExpr().getValue());
+//    if (!expr)
+//      return false;
+//    builder->create<mlir::lift::ReturnOp>(location, expr);
+//    return true;
+//  }
 
   // Emit a literal/constant array. It will be emitted as a flattened array of
   // data in an Attribute attached to a `lift.constant` operation.

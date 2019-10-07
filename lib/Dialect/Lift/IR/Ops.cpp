@@ -204,24 +204,24 @@ static mlir::LogicalResult verifyLiftSingleOperand(T *op) {
     return mlir::success();
 }
 
-void ReturnOp::build(mlir::Builder *builder, mlir::OperationState *state,
-                     mlir::Value *value) {
-    // Return does not return any value and has an optional single argument
-    if (value)
-        state->operands.push_back(value);
-}
-
-mlir::LogicalResult ReturnOp::verify() {
-    if (getNumOperands() > 1) {
-        std::string msg;
-        raw_string_ostream os(msg);
-        os << "expects zero or one operand, got " << getNumOperands();
-        return emitOpError(os.str());
-    }
-    if (hasOperand() && failed(verifyLiftSingleOperand(this)))
-        return mlir::failure();
-    return mlir::success();
-}
+//void ReturnOp::build(mlir::Builder *builder, mlir::OperationState *state,
+//                     mlir::Value *value) {
+//    // Return does not return any value and has an optional single argument
+//    if (value)
+//        state->operands.push_back(value);
+//}
+//
+//mlir::LogicalResult ReturnOp::verify() {
+//    if (getNumOperands() > 1) {
+//        std::string msg;
+//        raw_string_ostream os(msg);
+//        os << "expects zero or one operand, got " << getNumOperands();
+//        return emitOpError(os.str());
+//    }
+//    if (hasOperand() && failed(verifyLiftSingleOperand(this)))
+//        return mlir::failure();
+//    return mlir::success();
+//}
 
 void PrintOp::build(mlir::Builder *builder, mlir::OperationState *state,
                     mlir::Value *value) {
