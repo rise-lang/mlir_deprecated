@@ -22,8 +22,8 @@ This tutorial is divided in the following chapters:
     high level language specific semantics towards a generic linear-algebra
     oriented dialect for optimizations. Ultimately we will emit LLVM IR for code
     generation.
--   [Chapter #5](Ch-6.md): A REPL?
--   [Chapter #6](Ch-7.md): Custom backends? GPU using LLVM? TPU? XLA
+-   [Chapter #6](Ch-6.md): A REPL?
+-   [Chapter #7](Ch-7.md): Custom backends? GPU using LLVM? TPU? XLA
 
 ## The Language
 
@@ -82,7 +82,7 @@ def main() {
   # reuse the previously specialized and inferred version and return `<2, 2>`
   var d = multiply_transpose(b, a);
 
-  # A new call with `<2, 2>` for both dimension will trigger another
+  # A new call with `<2, 2>` for both dimensions will trigger another
   # specialization of `multiply_transpose`.
   var e = multiply_transpose(c, d);
 

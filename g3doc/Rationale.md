@@ -39,7 +39,7 @@ neural network accelerators.
 
 MLIR uses ideas drawn from IRs of LLVM and Swift for lower level constructs
 while combining them with ideas from the polyhedral abstraction to represent
-loop nests, multi-dimensional data (tensors), and transformations on these
+loop nests, multidimensional data (tensors), and transformations on these
 entities as first class concepts in the IR.
 
 MLIR is a multi-level IR, i.e., it represents code at a domain-specific
@@ -47,7 +47,7 @@ representation such as HLO or TensorFlow graphs, all the way down to the machine
 level. MLIR is able to represent arbitrary control flow and arbitrary data
 accesses, and is general enough to represent nearly all sequential computation.
 This is a key distinction from existing polyhedral representation
-implementations (such LLVM [Polly](https://polly.llvm.org/)) that are able to
+implementations (such as LLVM [Polly](https://polly.llvm.org/)) that are able to
 use the polyhedral abstraction in a way isolated from the LLVM IR and only for
 affine loop nests, i.e., portions of the code where array accesses, loop bounds,
 and conditionals are regular (involve linear functions of loop iterators and
@@ -58,7 +58,7 @@ polyhedral abstraction.
 
 Maps, sets, and relations with affine constraints are the core structures
 underlying a polyhedral representation of high-dimensional loop nests and
-multi-dimensional arrays. These structures are represented as textual
+multidimensional arrays. These structures are represented as textual
 expressions in a form close to their mathematical form. These structures are
 used to capture loop nests, tensor data structures, and how they are reordered
 and mapped for a target architecture. All structured or "conforming" loops are
@@ -73,10 +73,11 @@ that can be easily implemented include the body of affine transformations: these
 subsume all traditional loop transformations (unimodular and non-unimodular)
 such as loop tiling, interchange, permutation, skewing, scaling, relative
 shifting, reversal, fusion, and distribution/fission. Transformations on data
-layout such as padding and transforming to blocked layouts are also captured.
-The design of the IR allows a progressive lowering to target-specific forms.
+layout such as padding and transforming to blocked layouts are also represented
+well via affine layout maps.
 
-Besides high-level transformations for loop nests and data layout that a typical
+MLIR's design allows a progressive lowering to target-specific forms. Besides
+high-level transformations for loop nests and data layouts that a typical
 mid-level optimizer is expected to deal with, MLIR is also designed to perform
 certain low-level scheduling and mapping decisions that a typical backend IR is
 entrusted with: these include mapping to specialized vector instructions,
@@ -94,12 +95,10 @@ MLIR also facilitates automatic mapping to expert pre-tuned primitives or vendor
 libraries operating on data at higher levels (or at the highest level) of the
 memory hierarchy.
 
-**Strengths**
-
-*   MLIR is closed under the kind of transformations needed to lower to TPUs;
-    MLIR can be used to represent both the input and output of emitters
-*   MLIR allows us to build modular and reusable target independent and target
-    dependent passes - since each pass/emitter can read in another's output.
+In summary, MLIR is convenient for and closed under the kind of transformations
+needed to lower to general-purpose as well as specialized accelerators. It also
+allows one to build modular and reusable target independent and target dependent
+passes.
 
 ## Design Decisions
 
@@ -112,12 +111,12 @@ The 'load' and 'store' instructions are specifically crafted to fully resolve to
 an element of a memref. These instructions take as arguments n+1 indices for an
 n-ranked tensor. This disallows the equivalent of pointer arithmetic or the
 ability to index into the same memref in other ways (something which C arrays
-allow for example). Furthermore, in an affine construct, the compiler can follow
-use-def chains (e.g. through
-[affine.apply instructions](Dialects/Affine.md#affineapply-operation)) to
+allow for example). Furthermore, for the affine constructs, the compiler can
+follow use-def chains (e.g. through
+[affine.apply operations](Dialects/Affine.md#affineapply-operation)) or through
+the map attributes of [affine operations](Dialects/Affine.md#Operations)) to
 precisely analyze references at compile-time using polyhedral techniques. This
-is possible because of the
-[restrictions on dimensions and symbols](Dialects/Affine.md#restrictions-on-dimensions-and-symbols).
+is possible because of the [restrictions on dimensions and symbols](Dialects/Affine.md#restrictions-on-dimensions-and-symbols).
 
 A scalar of element-type (a primitive type or a vector type) that is stored in
 memory is modeled as a 0-d memref. This is also necessary for scalars that are
@@ -151,9 +150,9 @@ func bar(%A : memref<8x?xf32, #lmap>) {
   affine.for %i = 0 to 8 {
     affine.for %j = 0 to %N {
       // A[i,j] += 1
-      %s1 = load %A [%i, %j] : memref<8x?xf32, #lmap>
+      %s1 = affine.load %A[%i, %j] : memref<8x?xf32, #lmap>
       %s2 = add %s1, 1
-      store %s2 to %A [%i, %j] : memref<8x?xf32, #lmap>
+      affine.store %s2, %A[%i, %j] : memref<8x?xf32, #lmap>
     }
   }
   return
@@ -208,16 +207,16 @@ interest
 Index types are not allowed as elements of `vector`, `tensor` or `memref` type.
 Index types are intended to be used for platform-specific "size" values and may
 appear in subscripts, sizes of aggregate types and affine expressions. They are
-also tightly coupled with `affine.apply` and load/store operations; having
-`index` type is a necessary precondition of a value to be acceptable by these
-operations. While it may be useful to have `memref<?xindex>` to express indirect
-accesses in MLFunctions, e.g. sparse matrix manipulations or lookup tables, it
-creates problems MLIR is not ready to address yet. MLIR needs to internally
-store constants of aggregate types and emit code operating on values of those
-types, which are subject to target-specific size and alignment constraints.
-Since MLIR does not have a target description mechanism at the moment, it cannot
-reliably emit such code. Moreover, some platforms may not support vectors of
-type equivalent to `index`.
+also tightly coupled with `affine.apply` and affine.load/store operations;
+having `index` type is a necessary precondition of a value to be acceptable by
+these operations. While it may be useful to have `memref<?xindex>` to express
+indirect accesses, e.g. sparse matrix manipulations or lookup tables, it creates
+problems MLIR is not ready to address yet. MLIR needs to internally store
+constants of aggregate types and emit code operating on values of those types,
+which are subject to target-specific size and alignment constraints.  Since MLIR
+does not have a target description mechanism at the moment, it cannot reliably
+emit such code. Moreover, some platforms may not support vectors of type
+equivalent to `index`.
 
 Indirect access use cases can be alternatively supported by providing and
 `index_cast` instruction that allows for conversion between `index` and
@@ -513,7 +512,7 @@ parsing/printing, will be available.
 Dialect extended types are represented as string literals wrapped inside of the
 dialect namespace. This means that the parser delegates to the dialect for
 parsing specific type instances. This differs from the representation of dialect
-defined operations, of which have a identifier name that the parser uses to
+defined operations, of which have an identifier name that the parser uses to
 identify and parse them.
 
 This representation was chosen for several reasons:
@@ -591,8 +590,8 @@ represents computation.
 
 ```mlir {.mlir}
 // A simple linear search in every row of a matrix
-for (i=0; i<N; i++) {
-  for (j=0; j<N; j++) {
+for (i = 0; i < N; i++) {
+  for (j = 0; j < N; j++) {
     // dynamic control flow
     if (a[i][j] == key) {
       s[i] = j;
@@ -606,7 +605,7 @@ The presence of dynamic control flow leads to an inner non-affine function
 nested in an outer function that using affine loops.
 
 ```mlir {.mlir}
-func @search(memref<?x?xi32 %A, <?xi32> %S, i32 %key) {
+func @search(%A: memref<?x?xi32, %S: <?xi32>, %key : i32) {
   %ni = dim %A, 0 : memref<?x?xi32>
   // This loop can be parallelized
   affine.for %i = 0 to %ni {
@@ -624,12 +623,12 @@ func @search_body(%A: memref<?x?xi32>, %S: memref<?xi32>, %key: i32) {
   cond_br %p1, ^bb2, ^bb5
 
 ^bb2:
-  %v = load %A[%i, %j] : memref<?x?xi32>
+  %v = affine.load %A[%i, %j] : memref<?x?xi32>
   %p2 = cmpi "eq", %v, %key : i32
   cond_br %p2, ^bb3(%j), ^bb4
 
 ^bb3(%j: i32)
-  store %j, %S[%i] : memref<?xi32>
+  affine.store %j, %S[%i] : memref<?xi32>
   br ^bb5
 
 ^bb4:
@@ -653,34 +652,28 @@ context sensitive.
 Loop bounds that are not affine lead to a nesting of functions as shown below.
 
 ```c
-for (i=0; i <N; i++)
-  for (j=0; j<N; j++)
-    // non-affine loop bound for k loop
-    for (k=0; k<pow(2,j); k++)
-       for (l=0; l<N; l++) {
+for (i = 0; i < N; i++)
+  for (j = 0; j < N; j++)
+    // Non-affine loop bound for k loop.
+    for (k = 0; k < pow(2, j); k++)
+       for (l = 0; l < N; l++) {
         // block loop body
         ...
        }
 ```
 
 ```mlir {.mlir}
-func @outer_nest(%n) : (i32) {
+func @outer_nest(%n : index) {
   affine.for %i = 0 to %n {
     affine.for %j = 0 to %n {
-      call @inner_nest(%i, %j, %n)
+      %pow = call @pow(2, %j) : (index, index) ->  index
+      call @inner_nest(%pow, %n) : ...
     }
   }
   return
 }
 
-func @inner_nest(%i: i32, %j: i32, %n: i32) {
-  %pow = call @pow(2, %j) : (f32, f32) ->  f32
-  // TODO(missing cast from f32 to i32)
-  call @inner_nest2(%pow, %n)
-  return
-}
-
-func @inner_nest2(%m, %n) -> i32 {
+func @inner_nest(%m : index, %n : index) {
   affine.for %k = 0 to %m {
     affine.for %l = 0 to %n {
       ...
@@ -721,9 +714,9 @@ in a dilated convolution.
 // input:   [batch, input_height, input_width, input_feature]
 // kernel: [kernel_height, kernel_width, input_feature, output_feature]
 // output: [batch, output_height, output_width, output_feature]
-func @conv2d(memref<16x1024x1024x3xf32, #lm0, vmem> %input,
-             memref<5x5x3x32xf32, #lm0, vmem> %kernel,
-             memref<16x512x512x32xf32, #lm0, vmem> %output) {
+func @conv2d(%input: memref<16x1024x1024x3xf32, #lm0, /*scratchpad=*/1>,
+             %kernel: memref<5x5x3x32xf32, #lm0, /*scratchpad=*/1>,
+             %output: memref<16x512x512x32xf32, #lm0, /*scratchpad=*/1>) {
   affine.for %b = 0 to %batch {
     affine.for %oh = 0 to %output_height {
       affine.for %ow = 0 to %output_width {
@@ -773,7 +766,7 @@ our current design in practice.
 The current MLIR uses a representation of polyhedral schedules using a tree of
 if/for loops. We extensively debated the tradeoffs involved in the typical
 unordered polyhedral instruction representation (where each instruction has
-multi-dimensional schedule information), discussed the benefits of schedule tree
+multidimensional schedule information), discussed the benefits of schedule tree
 forms, and eventually decided to go with a syntactic tree of affine if/else
 conditionals and affine for loops. Discussion of the tradeoff was captured in
 this document:
@@ -794,19 +787,17 @@ At a high level, we have two alternatives here:
     explicitly propagate the schedule into domains and model all the cleanup
     code. An example and more detail on the schedule tree form is in the next
     section.
-1.  Having two different forms of MLFunctions: an affine loop tree form
-    (AffineLoopTreeFunction) and a polyhedral schedule tree form as two
-    different forms of MLFunctions. Or in effect, having four different forms
-    for functions in MLIR instead of three: CFG Function,
-    AffineLoopTreeFunction, Polyhedral Schedule Tree function, and external
-    functions.
+1.  Having two different forms of "affine regions": an affine loop tree form
+    and a polyhedral schedule tree form. In the latter, ops could carry
+    attributes capturing domain, scheduling, and other polyhedral code
+    generation options with IntegerSet, AffineMap, and other attributes.
 
-#### Schedule Tree Representation for MLFunctions
+#### Schedule Tree Representation for Affine Regions
 
 This representation is based on a simplified form of the domain/schedule
 representation used by the polyhedral compiler community. Domains represent what
 has to be executed while schedules represent the order in which domain elements
-are interleaved. We model domains as non piece-wise convex integer sets, and
+are interleaved. We model domains as non-piece-wise convex integer sets, and
 schedules as affine functions; however, the former can be disjunctive, and the
 latter can be piece-wise affine relations. In the schedule tree representation,
 domain and schedules for instructions are represented in a tree-like structure
@@ -826,15 +817,15 @@ func @matmul(%A, %B, %C, %M, %N, %K) : (...)  { // %M, N, K are symbols
   mldim %t1 : {S1,S2,S3,S4,S5}  floordiv (i, 128) {
     mldim %t2 : {S1,S2,S3,S4,S5}  floordiv (j, 128) {
       // (%i, %j) = affine.apply (d0, d1) -> (128*d0, 128*d1) (%t1, %t2)
-      call dma_hbm_to_vmem(%C, %i, %j, %M, %N, %K)
+      call dma_mem_to_scratchpad(%C, %i, %j, %M, %N, %K)
           with @intset_ij(%i, %j) [%M, %N, %K]
       mldim %t3 :   {S2,S3,S4,S5} floordiv (k, 128) {
         // (%i, %j, %k) = affine.apply (d0, d1, d2)
         //                          -> (128*d0, 128*d1, 128*d2)  (%t1, %t2, %t3)
-        call dma_hbm_to_vmem(%A, ...) with #inset_ijk (%i, %j, %k) [%M, %N, %K]
+        call dma_mem_to_scratchpad(%A, ...) with #inset_ijk (%i, %j, %k) [%M, %N, %K]
         // (%i, %j, %k) = affine.apply (d0, d1, d2)
         //                          -> (128*d0, 128*d1, 128*d2)  (%t1, %t2, %t3)
-        call dma_hbm_to_vmem(%B, ...) with #inset_ijk (%i, %j, %k) [%M, %N, %K]
+        call dma_mem_to_scratchpad(%B, ...) with #inset_ijk (%i, %j, %k) [%M, %N, %K]
         mldim %t4 : {S4} i mod 128 {
           mldim %t5 : {S4} j mod 128 {
             mldim %t6 : {S4} k mod 128 {
@@ -846,7 +837,7 @@ func @matmul(%A, %B, %C, %M, %N, %K) : (...)  { // %M, N, K are symbols
         } // end mldim t4
       } // end mldim t3
       // (%i, %j) = affine.apply (d0, d1) -> (128*d0, 128*d1) (%t1, %t2)
-      call $dma_vmem_to_hbm_C ... with #intset(%i, %j) [%M, %N, %K]
+      call $dma_scratchpad_to_mem_C ... with #intset(%i, %j) [%M, %N, %K]
     }  // end mldim t2
   } // end mldim t1
   return
@@ -903,16 +894,16 @@ Example:
 // read relation: two elements ( d0 <= r0 <= d0+1 )
 ##aff_rel9 = (d0) -> (r0) : r0 - d0 >= 0, d0 - r0 + 1 >= 0
 
-func @count (memref<128xf32, (d0) -> (d0)> %A, i32 %pos) -> f32
+func @count (%A : memref<128xf32>, %pos : i32) -> f32
   reads: {%A ##aff_rel9 (%pos)}
   writes: /* empty */
   may_reads: /* empty */
   may_writes: /* empty */ {
 bb0 (%0, %1: memref<128xf32>, i64):
-  %val = load %A [(d0) -> (d0) (%pos)]
-  %val = load %A [(d0) -> (d0 + 1) (%pos)]
+  %val = affine.load %A [%pos]
+  %val = affine.load %A [%pos + 1]
   %p = mulf %val, %val : f32
-  return %p
+  return %p : f32
 }
 ```
 
@@ -978,17 +969,17 @@ Example:
 ```mlir {.mlir}
 ##rel9 ( ) [s0] -> (r0, r1) : 0 <= r0 <= 1023, 0 <= r1 <= s0 - 1
 
-func @cblas_reduce_ffi(memref<1024 x ? x f32, #layout_map0, hbm> %M) -> f32 [
+func @cblas_reduce_ffi(%M: memref<1024 x ? x f32, #layout_map0, /*mem=*/0>)
+  -> f32 [
   reads: {%M, ##rel9() }
   writes: /* empty */
   may_reads: /* empty */
   may_writes: /* empty */
 ]
 
-func @dma_hbm_to_vmem(memref<1024 x f32, #layout_map0, hbm> %a,
-    offset, memref<1024 x f32, #layout_map0, vmem> %b,
-    memref<1024 x f32, #layout_map0> %c
-) [
+func @dma_mem_to_scratchpad(%a : memref<1024 x f32, #layout_map0, /*mem=*/0>,
+    %b : memref<1024 x f32, #layout_map0, 1>, %c : memref<1024 x f32,
+    #layout_map0>) [
   reads: {%M, ##rel9() }
   writes: /* empty */
   may_reads: /* empty */
@@ -1051,14 +1042,14 @@ Example:
 
 ```mlir {.mlir}
 // Return sum of elements in 1-dimensional mref A
-func int32 @sum(%A : memref<?xi32>, %N : i32) -> (i32) {
+func i32 @sum(%A : memref<?xi32>, %N : i32) -> (i32) {
    %init = 0
    %result = affine.for %i = 0 to N with %tmp(%init) {
-      %value = load %A[%i]
+      %value = affine.load %A[%i]
       %sum = %value + %tmp
       yield %sum
    }
-   return %result
+   return %result : i32
 }
 ```
 
@@ -1081,17 +1072,17 @@ Example:
 
 ```mlir {.mlir}
 // Compute sum of half of the array
-func int32 @sum_half(%A, %N) {
+func i32 @sum_half(%A : memref<?xi32>, %N : i32) -> (i32) {
    %s0 = 0
    %s1 = affine.for %i = 1 ... N step 1 with %s2 (%s0) {
        %s3 = if (%i >= %N / 2) {
-          %v0 = load %A[%i]
+          %v0 = affine.load %A[%i]
           %s4 = %s2 + %v0
           yield %s4
        }
        yield %s3
    }
-   return %s1
+   return %s1 : i32
 }
 ```
 
@@ -1110,19 +1101,21 @@ The problem is that LLVM has several objects in its IR that are globally uniqued
 and also mutable: notably constants like `i32 0`. In LLVM, these constants are
 `Value*r`'s, which allow them to be used as operands to instructions, and that
 they also have SSA use lists. Because these things are uniqued, every `i32 0` in
-any function share a use list. This means that optimizing multiple functions in
+any function shares a use list. This means that optimizing multiple functions in
 parallel won't work (at least without some sort of synchronization on the use
 lists, which would be unbearably inefficient).
 
 MLIR now supports a multithreaded pass manager. We do this through several
 design choices:
 
-1) MLIR makes use of extensive uniqued immutable data structures (affine
-expressions, types, etc are all immutable, uniqued, and immortal). 2) constants
-are defined in per-function pools, instead of being globally uniqued. 3)
-functions themselves are not SSA values either, so they don't have the same
-problem as constants. 4) FunctionPasses are copied (through their copy ctor)
-into one instances per thread, avoiding sharing of local state across threads.
+1.  MLIR makes use of extensive uniqued immutable data structures (affine
+    expressions, types, etc are all immutable, uniqued, and immortal).
+2.  Constants are defined in per-function pools, instead of being globally
+    uniqued.
+3.  Functions themselves are not SSA values either, so they don't have the same
+    problem as constants.
+4.  FunctionPasses are copied (through their copy ctor) into one instance per
+    thread, avoiding sharing of local state across threads.
 
 This allows MLIR function passes to support efficient multithreaded compilation
 and code generation.

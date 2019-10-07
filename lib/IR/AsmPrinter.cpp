@@ -356,7 +356,7 @@ protected:
   void printLocationInternal(LocationAttr loc, bool pretty = false);
   void printDenseElementsAttr(DenseElementsAttr attr);
 
-  /// This enum is used to represent the binding stength of the enclosing
+  /// This enum is used to represent the binding strength of the enclosing
   /// context that an AffineExprStorage is being printed in, so we can
   /// intelligently produce parens.
   enum class BindingStrength {
@@ -386,6 +386,9 @@ void ModulePrinter::printTrailingLocation(Location loc) {
 
 void ModulePrinter::printLocationInternal(LocationAttr loc, bool pretty) {
   switch (loc.getKind()) {
+  case StandardAttributes::OpaqueLocation:
+    printLocationInternal(loc.cast<OpaqueLoc>().getFallbackLocation(), pretty);
+    break;
   case StandardAttributes::UnknownLocation:
     if (pretty)
       os << "[unknown]";
@@ -722,6 +725,7 @@ void ModulePrinter::printAttribute(Attribute attr, bool mayElideType) {
   case StandardAttributes::FileLineColLocation:
   case StandardAttributes::FusedLocation:
   case StandardAttributes::NameLocation:
+  case StandardAttributes::OpaqueLocation:
   case StandardAttributes::UnknownLocation:
     printLocation(attr.cast<LocationAttr>());
     break;
@@ -1434,7 +1438,7 @@ StringRef OperationPrinter::uniqueValueName(StringRef name) {
     // generates new names by incrementing nextConflictID.
     SmallString<64> probeName(name);
     probeName.push_back('_');
-    while (1) {
+    while (true) {
       probeName.resize(name.size() + 1);
       probeName += llvm::utostr(nextConflictID++);
       if (!usedNames.count(probeName)) {
@@ -1599,7 +1603,7 @@ void OperationPrinter::printOperation(Operation *op) {
   // Check to see if this is a known operation.  If so, use the registered
   // custom printer hook.
   if (auto *opInfo = op->getAbstractOperation()) {
-    opInfo->printAssembly(op, this);
+    opInfo->printAssembly(op, *this);
     return;
   }
 
@@ -1746,7 +1750,10 @@ void Value::print(raw_ostream &os) {
   }
 }
 
-void Value::dump() { print(llvm::errs()); }
+void Value::dump() {
+  print(llvm::errs());
+  llvm::errs() << "\n";
+}
 
 void Operation::print(raw_ostream &os) {
   // Handle top-level operations.

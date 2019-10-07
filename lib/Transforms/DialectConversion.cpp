@@ -298,7 +298,7 @@ Operation *ArgConverter::convertArgument(BlockArgument *origArg,
 /// A utility function used to create a conversion cast operation with the
 /// given input and result types.
 Operation *ArgConverter::createCast(ArrayRef<Value *> inputs, Type outputType) {
-  return Operation::create(loc, castOpName, inputs, outputType, llvm::None,
+  return Operation::create(loc, castOpName, outputType, inputs, llvm::None,
                            llvm::None, 0, false);
 }
 
@@ -618,6 +618,16 @@ void ConversionPatternRewriter::applySignatureConversion(
   impl->applySignatureConversion(region, conversion);
 }
 
+void ConversionPatternRewriter::replaceUsesOfBlockArgument(BlockArgument *from,
+                                                           Value *to) {
+  for (auto &u : from->getUses()) {
+    if (u.getOwner() == to->getDefiningOp())
+      continue;
+    u.getOwner()->replaceUsesOfWith(from, to);
+  }
+  impl->mapping.map(impl->mapping.lookupOrDefault(from), to);
+}
+
 /// Clone the given operation without cloning its regions.
 Operation *ConversionPatternRewriter::cloneWithoutRegions(Operation *op) {
   Operation *newOp = OpBuilder::cloneWithoutRegions(*op);
@@ -933,15 +943,15 @@ void OperationLegalizer::computeLegalizationGraphBenefit() {
     // If a mapping for this operation does not exist, then this operation
     // is always legal. Return 0 as the depth for a directly legal operation.
     auto opPatternsIt = legalizerPatterns.find(op);
-    if (opPatternsIt == legalizerPatterns.end())
+    if (opPatternsIt == legalizerPatterns.end() || opPatternsIt->second.empty())
       return 0u;
 
-    auto &minDepth = minPatternDepth[op];
-    if (opPatternsIt->second.empty())
-      return minDepth;
-
     // Initialize the depth to the maximum value.
-    minDepth = std::numeric_limits<unsigned>::max();
+    unsigned minDepth = std::numeric_limits<unsigned>::max();
+
+    // Record this initial depth in case we encounter this op again when
+    // recursively computing the depth.
+    minPatternDepth.try_emplace(op, minDepth);
 
     // Compute the depth for each pattern used to legalize this operation.
     SmallVector<std::pair<RewritePattern *, unsigned>, 4> patternsByDepth;
@@ -955,6 +965,9 @@ void OperationLegalizer::computeLegalizationGraphBenefit() {
       // Update the min depth for this operation.
       minDepth = std::min(minDepth, depth);
     }
+
+    // Update the pattern depth.
+    minPatternDepth[op] = minDepth;
 
     // If the operation only has one legalization pattern, there is no need to
     // sort them.
@@ -1002,7 +1015,7 @@ enum OpConversionMode {
   Partial,
 
   // In this mode, all operations must be legal for the given target for the
-  // conversion to succeeed.
+  // conversion to succeed.
   Full,
 
   // In this mode, operations are analyzed for legality. No actual rewrites are

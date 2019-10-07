@@ -105,7 +105,7 @@ parenthesization, (2) negation, (3) modulo, multiplication, floordiv, and
 ceildiv, and (4) addition and subtraction. All of these operators associate from
 left to right.
 
-A _multi-dimensional affine expression_ is a comma separated list of
+A _multidimensional affine expression_ is a comma separated list of
 one-dimensional affine expressions, with the entire list enclosed in
 parentheses.
 
@@ -119,7 +119,7 @@ affine function. MLIR further extends the definition of an affine function to
 allow 'floordiv', 'ceildiv', and 'mod' with respect to positive integer
 constants. Such extensions to affine functions have often been referred to as
 quasi-affine functions by the polyhedral compiler community. MLIR uses the term
-'affine map' to refer to these multi-dimensional quasi-affine functions. As
+'affine map' to refer to these multidimensional quasi-affine functions. As
 examples, $$(i+j+1, j)$$, $$(i \mod 2, j+i)$$, $$(j, i/4, i \mod 4)$$, $$(2i+1,
 j)$$ are two-dimensional affine functions of $$(i, j)$$, but $$(i \cdot j,
 i^2)$$, $$(i \mod j, i/j)$$ are not affine functions of $$(i, j)$$.
@@ -300,7 +300,7 @@ operation ::= ssa-id `=` `affine.apply` affine-map dim-and-symbol-use-list
 ```
 
 The `affine.apply` operation applies an
-[affine mapping](../LangRef.md#affine-expressions) to a list of SSA values,
+[affine mapping](#affine-expressions) to a list of SSA values,
 yielding a single SSA value. The number of dimension and symbol arguments to
 affine.apply must be equal to the respective number of dimensional and symbolic
 inputs to the affine mapping; the `affine.apply` operation always returns one
@@ -392,7 +392,7 @@ space defined by an integer set (a conjunction of affine constraints). A single
 `affine.if` may end with an optional `else` clause.
 
 The condition of the `affine.if` is represented by an
-[integer set](../LangRef.md#integer-sets) (a conjunction of affine constraints),
+[integer set](#integer-sets) (a conjunction of affine constraints),
 and the SSA values bound to the dimensions and symbols in the integer set. The
 [same restrictions](#restrictions-on-dimensions-and-symbols) hold for these SSA
 values as for all bindings of SSA values to dimensions and symbols.

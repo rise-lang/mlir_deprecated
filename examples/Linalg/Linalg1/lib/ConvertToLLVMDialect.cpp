@@ -15,7 +15,7 @@
 // limitations under the License.
 // =============================================================================
 
-#include "mlir/Conversion/ControlFlowToCFG/ConvertControlFlowToCFG.h"
+#include "mlir/Conversion/LoopToStandard/ConvertLoopToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -181,24 +181,18 @@ public:
     // Helper function to obtain the size of the given `memref` along the
     // dimension `dim`.  For static dimensions, emits a constant; for dynamic
     // dimensions, extracts the size from the memref descriptor.
-    auto memrefSize = [int64Ty, pos, i64cst](MemRefType type, Value *memref,
-                                             int dim) -> Value * {
+    auto memrefSize = [&rewriter, int64Ty, i64cst](
+                          MemRefType type, Value *memref, int dim) -> Value * {
       assert(dim < type.getRank());
       if (type.getShape()[dim] != -1) {
         return i64cst(type.getShape()[dim]);
       }
-      int dynamicDimPos = 0;
-      for (int i = 0; i < dim; ++i)
-        if (type.getShape()[i] == -1)
-          ++dynamicDimPos;
-      return intrinsics::extractvalue(int64Ty, memref, pos(1 + dynamicDimPos));
+      return intrinsics::extractvalue(int64Ty, memref,
+                                      rewriter.getI64ArrayAttr({2, dim}));
     };
 
     // Helper function to obtain the data pointer of the given `memref`.
     auto memrefPtr = [pos](MemRefType type, Value *memref) -> Value * {
-      if (type.hasStaticShape())
-        return memref;
-
       auto elementTy = linalg::convertLinalgType(type.getElementType())
                            .cast<LLVM::LLVMType>()
                            .getPointerTo();

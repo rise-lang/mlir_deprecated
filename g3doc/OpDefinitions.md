@@ -7,7 +7,7 @@ maintain records of domain-specific information. Facts regarding an operation
 are specified concisely into a TableGen record, which will be expanded into an
 equivalent `mlir::Op` C++ template specialization at compiler build time.
 
-This manual explains in detail all the available mechansims for defining
+This manual explains in detail all the available mechanisms for defining
 operations in such a table-driven manner. It aims to be a specification instead
 of a tutorial. Please refer to [Quickstart tutorial to adding MLIR graph
 rewrite](QuickstartRewrites.md) for the latter.
@@ -242,7 +242,7 @@ like `"0.5f"`, and an integer array default value should be specified as like
 `Confined` is provided as a general mechanism to help modelling further
 constraints on attributes beyond the ones brought by value types. You can use
 `Confined` to compose complex constraints out of more primitive ones. For
-example, an 32-bit integer attribute whose minimal value must be 10 can be
+example, a 32-bit integer attribute whose minimal value must be 10 can be
 expressed as `Confined<I32Attr, [IntMinValue<10>]>`.
 
 Right now, the following primitive constraints are supported:
@@ -298,10 +298,11 @@ of the boilerplate necessary.
 
 Providing a definition of the `OpInterface` class will auto-generate the C++
 classes for the interface. An `OpInterface` includes a name, for the C++ class,
-along with a list of interface methods.
+a description, and a list of interface methods.
 
 ```tablegen
 def MyInterface : OpInterface<"MyInterface"> {
+  let description = ...;
   let methods = [...];
 }
 ```
@@ -313,6 +314,8 @@ static method on the derived operation.
 
 An `InterfaceMethod` is comprised of the following components:
 
+*   Description
+    -   A string description of what this method does and its invariants.
 *   ReturnType
     -   A string corresponding to the C++ return type of the method.
 *   MethodName
@@ -327,54 +330,76 @@ An `InterfaceMethod` is comprised of the following components:
     -   In non-static methods, a variable 'ConcreteOp op' is defined and may be
         used to refer to an instance of the derived operation.
 
+ODS also allows generating the declarations for the `InterfaceMethod` of the op
+if one specifies the interface with `DeclareOpInterfaceMethods` (see example
+below).
+
 Examples:
 
 ```tablegen
 def MyInterface : OpInterface<"MyInterface"> {
+  let description = [{
+    My interface is very interesting. ...
+  }];
+
   let methods = [
     // A simple non-static method with no inputs.
-    InterfaceMethod<"unsigned", "foo">,
+    InterfaceMethod<"'foo' is a non-static method with no inputs.",
+      "unsigned", "foo"
+    >,
 
     // A new non-static method accepting an input argument.
-    InterfaceMethod<"Value *", "bar", (ins "unsigned":$i)>,
+    InterfaceMethod<"/*insert doc here*/",
+      "Value *", "bar", (ins "unsigned":$i)
+    >,
 
     // Query a static property of the derived operation.
-    StaticInterfaceMethod<"unsigned", "fooStatic">,
+    StaticInterfaceMethod<"'fooStatic' is a static method with no inputs.",
+      "unsigned", "fooStatic"
+    >,
 
     // Provide the definition of a static interface method.
     // Note: `ConcreteOp` corresponds to the derived operation typename.
-    StaticInterfaceMethod<"Operation *", "create",
-      (ins "OpBuilder &":$builder, "Location":$loc), [{
+    StaticInterfaceMethod<"/*insert doc here*/",
+      "Operation *", "create", (ins "OpBuilder &":$builder, "Location":$loc), [{
         return builder.create<ConcreteOp>(loc);
     }]>,
 
     // Provide a definition of the non-static method.
     // Note: `op` corresponds to the derived operation variable.
-    InterfaceMethod<"unsigned", "getNumInputsAndOutputs", (ins), [{
-      return op.getNumInputs() + op.getNumOutputs();
+    InterfaceMethod<"/*insert doc here*/",
+      "unsigned", "getNumInputsAndOutputs", (ins), [{
+        return op.getNumInputs() + op.getNumOutputs();
     }]>,
   ];
 }
+
+// Interfaces can optionally be wrapped inside DeclareOpInterfaceMethods. This
+// would result in autogenerating declarations for members `foo`, `bar` and
+// `fooStatic`. Methods without bodies are not declared inside the op
+// declaration but instead handled by the op interface trait directly.
+def OpWithInferTypeInterfaceOp : Op<...
+    [DeclareOpInterfaceMethods<MyInterface>]> { ... }
 ```
 
 ### Custom builder methods
 
-For each operation, there are two builder automatically generated based on the
+For each operation, there are two builders automatically generated based on the
 arguments and returns types:
 
 ```c++
-static void build(Builder *, OperationState *tblgen_state,
+static void build(Builder *, OperationState &tblgen_state,
                   Type <result0-name>, Type <result1-name>, ...,
                   Value <arg0-name>, Value <arg1-name>, ...,
                   Attribute <attr0-name>, Attribute <attr1-name>, ...);
 
-static void build(Builder *, OperationState *tblgen_state,
+static void build(Builder *, OperationState &tblgen_state,
                   ArrayRef<Type> resultTypes,
                   ArrayRef<Value> operands,
                   ArrayRef<NamedAttribute> attributes);
 ```
 
-The above cases makes sure basic uniformity so that we can create ops using the
+The above cases make sure basic uniformity so that we can create ops using the
 same form regardless of the exact op. This is particularly useful for
 implementing declarative pattern rewrites.
 
@@ -383,10 +408,10 @@ convenience build methods with `OpBuilder`.
 
 `OpBuilder` is a class that takes the parameter list and the optional `build()`
 method body. They are separated because we need to generate op declaration and
-definition into separate files. The parameter list should _include_
-`Builder *builder, OperationState *state`. If the `body` is not provided, _only_
-the builder declaration will be generated; this provides a way to define
-complicated builders entirely in C++ files.
+definition into separate files. The parameter list should _include_ `Builder
+*builder, OperationState &state`. If the `body` is not provided, _only_ the
+builder declaration will be generated; this provides a way to define complicated
+builders entirely in C++ files.
 
 For example, for the following op:
 
@@ -406,18 +431,18 @@ def MyOp : ... {
   ...
 
   let builders = [
-    OpBuilder<"Builder *builder, OperationState *state, float val = 0.5f", [{
-      state->addAttribute("attr", builder->getF32FloatAttr(val));
+    OpBuilder<"Builder *builder, OperationState &state, float val = 0.5f", [{
+      state.addAttribute("attr", builder->getF32FloatAttr(val));
     ]}>
-  ]
+  ];
 }
 ```
 
 The generated builder will look like:
 
 ```c++
-static void build(Builder *builder, OperationState *state, float val = 0.5f) {
-  state->addAttribute("attr", builder->getF32FloatAttr(val));
+static void build(Builder *builder, OperationState &state, float val = 0.5f) {
+  state.addAttribute("attr", builder->getF32FloatAttr(val));
 }
 ```
 
@@ -454,7 +479,7 @@ for this operation. If it is `1`, then `::fold()` should be defined.
 ### Extra declarations
 
 One of the goals of table-driven op definition is to auto-generate as much logic
-and methods needed for each op as possible. With that said,there will always be
+and methods needed for each op as possible. With that said, there will always be
 long-tail cases that won't be covered. For such cases, you can use
 `extraClassDeclaration`. Code in `extraClassDeclaration` will be copied
 literally to the generated C++ op class.
@@ -502,7 +527,7 @@ For each operation, we automatically generate an _operand adaptor_. This class
 solves the problem of accessing operands provided as a list of `Value`s without
 using "magic" constants. The operand adaptor takes a reference to an array of
 `Value *` and provides methods with the same names as those in the operation
-class to access them. For example, for a binary arithmethic operation, it may
+class to access them. For example, for a binary arithmetic operation, it may
 provide `.lhs()` to access the first operand and `.rhs()` to access the second
 operand.
 
@@ -558,7 +583,7 @@ a float tensor, and so on.
 
 Similarly, a set of `AttrConstraint`s are created for helping modelling
 constraints of common attribute kinds. They are the `Attr` subclass hierarchy.
-It includes `F32Attr` for the constraints of being an float attribute,
+It includes `F32Attr` for the constraints of being a float attribute,
 `F32ArrayAttr` for the constraints of being a float array attribute, and so on.
 
 ### Multi-entity constraint
@@ -634,7 +659,7 @@ replaced by the current attribute `attr` at expansion time.
 
 For more complicated predicates, you can wrap it in a single `CPred`, or you
 can use predicate combiners to combine them. For example, to write the
-constraint that an attribute `attr` is an 32-bit or 64-bit integer, you can
+constraint that an attribute `attr` is a 32-bit or 64-bit integer, you can
 write it as
 
 ```tablegen
@@ -681,9 +706,9 @@ def MyOp : Op<...> {
 As to whether we should define the predicate using a single `CPred` wrapping
 the whole expression, multiple `CPred`s with predicate combiners, or a single
 `CPred` "invoking" a function, there are no clear-cut criteria. Defining using
-`CPred` and predicate combiners is preferrable since it exposes more information
+`CPred` and predicate combiners is preferable since it exposes more information
 (instead hiding all the logic behind a C++ function) into the op definition spec
-so that it can pontentially drive more auto-generation cases. But it will
+so that it can potentially drive more auto-generation cases. But it will
 require a nice library of common predicates as the building blocks to avoid the
 duplication, which is being worked on right now.
 
@@ -830,7 +855,7 @@ requirements that were desirable:
 * The op's traits (e.g., commutative) are modelled along with the op in
   the registry.
 * The op's operand/return type constraints are modelled along with the op in
-  the registry (see [Type constraints](#type-constraints) discussion below),
+  the registry (see [Shape inference](#shape-inference) discussion below),
   this allows (e.g.) optimized concise syntax in textual dumps.
 * Behavior of the op is documented along with the op with a summary and a
   description. The description is written in markdown and extracted for
@@ -914,7 +939,7 @@ the output type (shape) for given input type (shape).
 
 But shape functions are determined by attributes and could be arbitrarily
 complicated with a wide-range of specification possibilities. Equality
-relationship are common (e.g., the elemental type of the output matches the
+relationships are common (e.g., the elemental type of the output matches the
 primitive type of the inputs, both inputs have exactly the same type [primitive
 type and shape]) and so these should be easy to specify. Algebraic relationships
 would also be common (e.g., a concat of `[n,m]` and `[n,m]` matrix along axis 0

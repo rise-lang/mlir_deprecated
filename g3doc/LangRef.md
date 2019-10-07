@@ -31,7 +31,7 @@ which means that values are defined before use and have scope defined by their
 dominance relations. Operations may produce zero or more results, and each is a
 distinct SSA value with its own type defined by the [type system](#type-system).
 
-The unit of code in MLIR is an [Operation](#operation). Operations allow for
+The unit of code in MLIR is an [Operation](#operations). Operations allow for
 representing many different concepts: allocating buffers, producing views to
 transform them, target-independent arithmetic, target-specific operations, and
 even arbitrary user-defined high-level operations including the
@@ -300,20 +300,21 @@ Example:
 ### Module
 
 ``` {.ebnf}
-module ::= `module` (`attributes` attribute-dict)? region
+module ::= `module` symbol-ref-id? (`attributes` attribute-dict)? region
 ```
 
 An MLIR module represents an opaque top-level container operation. It contains a
 single region containing a single block that is comprised of any operations.
 Operations within this region must not implicitly capture values defined above
-it.
+it. Modules have an optional symbol name that can be used to refer to them in
+operations.
 
 ### Functions
 
 An MLIR Function is an operation with a name containing one [region](#regions).
 The region of a function is not allowed to implicitly capture values defined
-outside of the function, and all external references must use Function arguments
-or attributes that establish a symbolic connection(e.g. symbols referenced by
+outside of the function, and all external references must use function arguments
+or attributes that establish a symbolic connection (e.g. symbols referenced by
 name via a string attribute like [SymbolRefAttr](#symbol-reference-attribute)):
 
 ``` {.ebnf}
@@ -455,12 +456,14 @@ func @accelerator_compute(i64, i1) -> i64 {
 ^bb2:
   "accelerator.launch"() {
     ^bb0:
-      // Region of code nested under "accelerator_launch", it can reference %a but
+      // Region of code nested under "accelerator.launch", it can reference %a but
       // not %value.
       %new_value = "accelerator.do_something"(%a) : (i64) -> ()
   }
   // %new_value cannot be referenced outside of the region
-...
+
+^bb3:
+  ...
 }
 ```
 
@@ -692,7 +695,7 @@ index-type ::= `index`
 
 The `index` type is a signless integer whose size is equal to the natural
 machine word of the target ([rationale](Rationale.md#signless-types)) and is
-used by the affine constructs in MLIR. Unlike fixed-size integers. It cannot be
+used by the affine constructs in MLIR. Unlike fixed-size integers, it cannot be
 used as an element of vector, tensor or memref type
 ([rationale](Rationale.md#index-type-disallowed-in-vectortensormemref-types)).
 
@@ -725,9 +728,12 @@ Syntax:
 
 ``` {.ebnf}
 memref-type ::= `memref` `<` dimension-list-ranked tensor-memref-element-type
-                (`,` semi-affine-map-composition)? (`,` memory-space)? `>`
+                (`,` layout-specification)? |
+                (`,` memory-space)? `>`
 
-semi-affine-map-composition ::= (semi-affine-map `,` )* semi-affine-map
+stride-list ::= `[` (dimension (`,` dimension)*)? `]`
+strided-layout ::= `offset:` dimension `,` `strides: ` stride-list
+layout-specification ::= semi-affine-map | strided-layout
 memory-space ::= integer-literal /* | TODO: address-space-id */
 ```
 
@@ -738,6 +744,12 @@ memory region which it references. Memref types use the same shape specifier as
 tensor types, but do not allow unknown rank. Note that `memref<f32>`, `memref<0
 x f32>`, `memref<1 x 0 x f32>`, and `memref<0 x 1 x f32>` are all different
 types.
+
+The core syntax and representation of a layout specification is a
+[semi-affine map](Dialects/Affine.md#semi-affine-maps). Additionally, syntactic
+sugar is supported to make certain layout specifications more intuitive to read.
+For the moment, a `memref` supports parsing a strided form which is converted to
+a semi-affine map automatically.
 
 The memory space of a memref is specified by a target-specific integer index. If
 no memory space is specified, then the default memory space (0) is used. The
@@ -756,36 +768,58 @@ Examples of memref static type
 
 ```mlir {.mlir}
 // Identity index/layout map
-#imapA = (d0, d1) -> (d0, d1) size (16, 32)
+#identity = (d0, d1) -> (d0, d1)
 
 // Column major layout.
-#imapB = (d0, d1, d2) [s0] -> (d2, d1, d0) size (s0, 4, 16)
+#col_major = (d0, d1, d2) -> (d2, d1, d0)
+
+// A 2-d tiled layout with tiles of size 128 x 256.
+#tiled_2d_128x256 = (d0, d1) -> (d0 div 128, d1 div 256, d0 mod 128, d0 mod 256)
+
+// A tiled data layout with non-constant tile sizes.
+#tiled_dynamic = (d0, d1)[s0, s1] -> (d0 floordiv s0, d1 floordiv s1,
+                              d0 mod s0, d1 mod s1)
+
+// A layout that yields a padding on two at either end of the minor dimension.
+#padded = (d0, d1) -> (d0, (d1 + 2) floordiv 2, (d1 + 2) mod 2)
+
 
 // The dimension list "16x32" defines the following 2D index space:
 //
 //   { (i, j) : 0 <= i < 16, 0 <= j < 32 }
 //
-memref<16x32xf32, #imapA, memspace0>
+memref<16x32xf32, #identity, memspace0>
+
 // The dimension list "16x4x?" defines the following 3D index space:
 //
 //   { (i, j, k) : 0 <= i < 16, 0 <= j < 4, 0 <= k < N }
 //
 // where N is a symbol which represents the runtime value of the size of
 // the third dimension.
-memref<16x4x?xf32, #imapB, memspace0>
-```
+//
+// %N here binds to the size of the third dimension.
+%A = alloc(%N) : memref<16x4x?xf32, #col_major, memspace0>
 
-Symbol capture example:
+// A 2-d dynamic shaped memref that also has a dynamically sized tiled layout.
+// The memref index space is of size %M x %N, while %B1 and %B2 bind to the
+// symbols s0, s1 respectively of the layout map #tiled_dynamic. Data tiles of
+// size %B1 x %B2 in the logical space will be stored contiguously in memory.
+// The allocation size will be (%M ceildiv %B1) * %B1 * (%N ceildiv %B2) * %B2 
+// f32 elements.
+%T = alloc(%M, %N) [%B1, %B2] : memref<?x?xf32, #tiled_dynamic>
 
-```mlir {.mlir}
-// Affine map with symbol 's0' used as offset for first dimension.
-#imapA = (d0, d1) [s0] -> (d0 + s0, d1)
+// A memref that has a two-element padding at either end. The allocation size
+// will fit 16 * 68 float elements of data.
+%P = alloc() : memref<16x64xf32, #padded>
+
+// Affine map with symbol 's0' used as offset for the first dimension.
+#imapS = (d0, d1) [s0] -> (d0 + s0, d1)
 // Allocate memref and bind the following symbols:
 // '%n' is bound to the dynamic second dimension of the memref type.
 // '%o' is bound to the symbol 's0' in the affine map of the memref type.
 %n = ...
 %o = ...
-%A = alloc (%n)[%o] : <16x?xf32, #imapA>
+%A = alloc (%n)[%o] : <16x?xf32, #imapS>
 ```
 
 ##### Index Space
@@ -826,20 +860,6 @@ integral. In addition, an index map must specify the size of each of its range
 dimensions onto which it maps. Index map symbols must be listed in order with
 symbols for dynamic dimension sizes first, followed by other required symbols.
 
-Index map examples:
-
-```mlir {.mlir}
-// Index map from [MS, NS] slice index space to larger [M, N]
-// matrix index space at slice offset symbols OI, OJ:
-// Maps from [MS, NS] -> [M, N]
-#imap_slice = (i, j) [M, N, OI, OJ] -> (i + OI , j + OJ) size (M, N)
-
-// Index map from 4-dimensional tiled index space to
-// 2-dimensional index space.
-// Maps from [M/128, N/128, 128, 128] -> [M, N]
-#imap_tiled = (d0, d1, d2, d3) [M, N] -> (128 * d0 + d2, 128 * d1 + d3)
-                                         size (M, N)
-```
 
 ##### Layout Map
 
@@ -852,10 +872,13 @@ Layout map examples:
 
 ```mlir {.mlir}
 // MxN matrix stored in row major layout in memory:
-#layout_map_row_major = (i, j) [M, N] -> (i, j) size (M, N)
+#layout_map_row_major = (i, j) -> (i, j)
 
 // MxN matrix stored in column major layout in memory:
-#layout_map_col_major = (i, j) [M, N] -> (j, i) size (M, N)
+#layout_map_col_major = (i, j) -> (j, i)
+
+// MxN matrix stored in a 2-d blocked/tiled layout with 64x64 tiles.
+#layout_tiled = (i, j) -> (i floordiv 64, j floordiv 64, i mod 64, j mod 64)
 ```
 
 ##### Affine Map Composition
@@ -876,6 +899,37 @@ The semi-affine map composition can be used in dependence analysis, memory
 access pattern analysis, and for performance optimizations like vectorization,
 copy elision and in-place updates. If an affine map composition is not specified
 for the memref, the identity affine map is assumed.
+
+##### Strided MemRef
+
+A memref may specify strides as part of its type. A stride specification is a
+list of integer values that are either static or `?` (dynamic case). Strides
+encode the distance, in number of elements, in (linear) memory between
+successive entries along a particular dimension. A stride specification is
+syntactic sugar for an equivalent strided memref representation using
+semi-affine maps. For example, `memref<42x16xf32, offset: 33 strides: [1, 64]>`
+specifies a non-contiguous memory region of `42` by `16` `f32` elements such
+that:
+
+1.  the minimal size of the enclosing memory region must be `33 + 42 * 1 + 16 *
+    64 = 1066` elements;
+2.  the address calculation for accessing element `(i, j)` computes `33 + i +
+    64 * j`
+3.  the distance between two consecutive elements along the outer dimension is
+    `1` element and the distance between two consecutive elements along the
+    outer dimension is `64` elements.
+
+This corresponds to a column major view of the memory region and is internally
+represented as the type `memref<42x16xf32, (i, j) -> (33 + i + 64 * j)>`.
+
+The specification of strides must not alias: given an n-D strided memref,
+indices `(i1, ..., in)` and `(j1, ..., jn)` may not refer to the same memory
+address unless `i1 == j1, ..., in == jn`.
+
+Strided memrefs represent a view abstraction over preallocated data. They are
+constructed with special ops, yet to be introduced. Strided memrefs are a
+special subclass of memrefs with generic semi-affine map and correspond to a
+normalized memref descriptor when lowering to LLVM.
 
 #### None Type
 
@@ -1285,7 +1339,7 @@ Syntax:
 integer-set-attribute ::= affine-map
 ```
 
-An integer-set attribute is an attribute that represents a integer-set object.
+An integer-set attribute is an attribute that represents an integer-set object.
 
 #### String Attribute
 

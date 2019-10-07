@@ -165,21 +165,21 @@ func @calls(%arg0: i32) {
 
 func @func_with_ops(f32) {
 ^bb0(%a : f32):
-  %sf = addf %a, %a, %a : f32  // expected-error {{custom op 'std.addf' expected 2 operands}}
+  %sf = addf %a, %a, %a : f32  // expected-error {{'std.addf' op expected 2 operands}}
 }
 
 // -----
 
 func @func_with_ops(f32) {
 ^bb0(%a : f32):
-  %sf = addf(%a, %a) : f32  // expected-error {{unexpected delimiter}}
+  %sf = addf(%a, %a) : f32  // expected-error {{expected ':'}}
 }
 
 // -----
 
 func @func_with_ops(f32) {
 ^bb0(%a : f32):
-  %sf = addf{%a, %a} : f32  // expected-error {{invalid operand}}
+  %sf = addf{%a, %a} : f32  // expected-error {{expected attribute name}}
 }
 
 // -----
@@ -718,10 +718,194 @@ func @sitofp_f32_to_i32(%arg0 : f32) {
 
 // -----
 
+func @fpext_f32_to_f16(%arg0 : f32) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fpext %arg0 : f32 to f16
+  return
+}
+
+// -----
+
+func @fpext_f16_to_f16(%arg0 : f16) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fpext %arg0 : f16 to f16
+  return
+}
+
+// -----
+
+func @fpext_i32_to_f32(%arg0 : i32) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fpext %arg0 : i32 to f32
+  return
+}
+
+// -----
+
+func @fpext_f32_to_i32(%arg0 : f32) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fpext %arg0 : f32 to i32
+  return
+}
+
+// -----
+
+func @fptrunc_f16_to_f32(%arg0 : f16) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fptrunc %arg0 : f16 to f32
+  return
+}
+
+// -----
+
+func @fptrunc_f32_to_f32(%arg0 : f32) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fptrunc %arg0 : f32 to f32
+  return
+}
+
+// -----
+
+func @fptrunc_i32_to_f32(%arg0 : i32) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fptrunc %arg0 : i32 to f32
+  return
+}
+
+// -----
+
+func @fptrunc_f32_to_i32(%arg0 : f32) {
+  // expected-error@+1 {{are cast incompatible}}
+  %0 = fptrunc %arg0 : f32 to i32
+  return
+}
+
+// -----
+
+func @sexti_index_as_operand(%arg0 : index) {
+  // expected-error@+1 {{'index' is not a valid operand type}}
+  %0 = sexti %arg0 : index to i128
+  return
+}
+
+// -----
+
+func @zexti_index_as_operand(%arg0 : index) {
+  // expected-error@+1 {{'index' is not a valid operand type}}
+  %0 = zexti %arg0 : index to i128
+  return
+}
+
+// -----
+
+func @trunci_index_as_operand(%arg0 : index) {
+  // expected-error@+1 {{'index' is not a valid operand type}}
+  %2 = trunci %arg0 : index to i128
+  return
+}
+
+// -----
+
+func @sexti_index_as_result(%arg0 : i1) {
+  // expected-error@+1 {{'index' is not a valid result type}}
+  %0 = sexti %arg0 : i1 to index
+  return
+}
+
+// -----
+
+func @zexti_index_as_operand(%arg0 : i1) {
+  // expected-error@+1 {{'index' is not a valid result type}}
+  %0 = zexti %arg0 : i1 to index
+  return
+}
+
+// -----
+
+func @trunci_index_as_result(%arg0 : i128) {
+  // expected-error@+1 {{'index' is not a valid result type}}
+  %2 = trunci %arg0 : i128 to index
+  return
+}
+
+// -----
+
+func @sexti_cast_to_narrower(%arg0 : i16) {
+  // expected-error@+1 {{must be wider}}
+  %0 = sexti %arg0 : i16 to i15
+  return
+}
+
+// -----
+
+func @zexti_cast_to_narrower(%arg0 : i16) {
+  // expected-error@+1 {{must be wider}}
+  %0 = zexti %arg0 : i16 to i15
+  return
+}
+
+// -----
+
+func @trunci_cast_to_wider(%arg0 : i16) {
+  // expected-error@+1 {{must be wider}}
+  %0 = trunci %arg0 : i16 to i17
+  return
+}
+
+// -----
+
+func @sexti_cast_to_same_width(%arg0 : i16) {
+  // expected-error@+1 {{must be wider}}
+  %0 = sexti %arg0 : i16 to i16
+  return
+}
+
+// -----
+
+func @zexti_cast_to_same_width(%arg0 : i16) {
+  // expected-error@+1 {{must be wider}}
+  %0 = zexti %arg0 : i16 to i16
+  return
+}
+
+// -----
+
+func @trunci_cast_to_same_width(%arg0 : i16) {
+  // expected-error@+1 {{must be wider}}
+  %0 = trunci %arg0 : i16 to i16
+  return
+}
+
+// -----
+
 func @return_not_in_function() {
   "foo.region"() ({
     // expected-error@+1 {{'std.return' op expects parent op 'func'}}
     return
   }): () -> ()
+  return
+}
+
+// -----
+
+func @invalid_splat(%v : f32) {
+  splat %v : memref<8xf32>
+  // expected-error@-1 {{must be vector of any type values or statically shaped tensor of any type values}}
+  return
+}
+
+// -----
+
+func @invalid_splat(%v : vector<8xf32>) {
+  %w = splat %v : tensor<8xvector<8xf32>>
+  // expected-error@-1 {{must be integer or float type}}
+  return
+}
+
+// -----
+
+func @invalid_splat(%v : f32) { // expected-note {{prior use here}}
+  splat %v : vector<8xf64>
+  // expected-error@-1 {{expects different type than prior uses}}
   return
 }

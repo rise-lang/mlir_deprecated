@@ -162,6 +162,7 @@ enum Kind {
   FileLineColLocation,
   FusedLocation,
   NameLocation,
+  OpaqueLocation,
   UnknownLocation,
 
   // Represents a location as a 'void*' pointer to a front-end's opaque
@@ -1304,7 +1305,6 @@ template <> struct DenseMapInfo<mlir::Attribute> {
 
 /// Allow LLVM to steal the low bits of Attributes.
 template <> struct PointerLikeTypeTraits<mlir::Attribute> {
-public:
   static inline void *getAsVoidPointer(mlir::Attribute attr) {
     return const_cast<void *>(attr.getAsOpaquePointer());
   }
@@ -1312,6 +1312,15 @@ public:
     return mlir::Attribute::getFromOpaquePointer(ptr);
   }
   enum { NumLowBitsAvailable = 3 };
+};
+
+template <>
+struct PointerLikeTypeTraits<mlir::SymbolRefAttr>
+    : public PointerLikeTypeTraits<mlir::Attribute> {
+  static inline mlir::SymbolRefAttr getFromVoidPointer(void *ptr) {
+    return PointerLikeTypeTraits<mlir::Attribute>::getFromVoidPointer(ptr)
+        .cast<mlir::SymbolRefAttr>();
+  }
 };
 
 } // namespace llvm

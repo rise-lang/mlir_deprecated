@@ -15,7 +15,7 @@
 // limitations under the License.
 // =============================================================================
 
-#include "mlir/Conversion/ControlFlowToCFG/ConvertControlFlowToCFG.h"
+#include "mlir/Conversion/LoopToStandard/ConvertLoopToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -132,7 +132,7 @@ struct LinalgTypeConverter : public LLVMTypeConverter {
 } // end anonymous namespace
 
 // Helper function that allocates the descriptor converters and adds load/store
-// coverters to the list.
+// converters to the list.
 static void populateLinalg3ToLLVMConversionPatterns(
     mlir::OwningRewritePatternList &patterns, mlir::MLIRContext *context) {
   patterns.insert<LoadOpConversion, StoreOpConversion>(context);

@@ -38,8 +38,7 @@ The MLIR branch operation is not allowed to target the entry block for a region.
 Syntax:
 
 ``` {.ebnf}
-operation ::=
-  `cond_br` ssa-use `,` successor `,` successor
+operation ::= `cond_br` ssa-use `,` successor `,` successor
 ```
 
 The `cond_br` terminator operation represents a conditional branch on a boolean
@@ -85,7 +84,8 @@ single function to return.
 Syntax:
 
 ``` {.ebnf}
-operation ::= `call` symbol-ref-id `(` ssa-use-list? `)` `:` function-type
+operation ::= 
+    (ssa-id `=`)? `call` symbol-ref-id `(` ssa-use-list? `)` `:` function-type
 ```
 
 The `call` operation represents a direct call to a function. The operands and
@@ -352,13 +352,38 @@ because of the
 [restrictions on dimensions and symbols](Affine.md#restrictions-on-dimensions-and-symbols)
 in these contexts.
 
+### 'splat' operation
+
+Syntax:
+
+``` {.ebnf}
+operation ::= ssa-id `=` `splat` ssa-use `:` ( vector-type | tensor-type )
+```
+
+Broadcast the operand to all elements of the result vector or tensor. The
+operand has to be of either integer or float type. When the result is a tensor,
+it has to be statically shaped.
+
+Example:
+
+```mlir {.mlir}
+  %s = load %A[%i] : memref<128xf32>
+  %v = splat %s : vector<4xf32>
+  %t = splat %s : tensor<8x16xi32>
+```
+
+TODO: This operation is easy to extend to broadcast to dynamically shaped
+tensors in the same way dynamically shaped memrefs are handled. `mlir {.mlir} //
+Broadcasts %s to a 2-d dynamically shaped tensor, with %m, %n binding // to the
+sizes of the two dynamic dimensions. %m = "foo"() : () -> (index) %n = "bar"() :
+() -> (index) %t = splat %s [%m, %n] : tensor<?x?xi32>`
+
 ### 'store' operation
 
 Syntax:
 
 ``` {.ebnf}
-operation ::= `store` ssa-use `,` ssa-use
-    `[` ssa-use-list `]` `:` memref-type
+operation ::= `store` ssa-use `,` ssa-use `[` ssa-use-list `]` `:` memref-type
 ```
 
 Store value to memref location given by indices. The value stored should have
