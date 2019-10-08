@@ -1,4 +1,7 @@
-
+#### Structuring of Types
+* For constructing new Types there is a utility class `TypeBase` 
+* This method prevents multiple inheritance which might be needed to model our Typesystem (not 100% sure about this)
+* We could directly subclass the class `Type`
 
 
 03. October:
