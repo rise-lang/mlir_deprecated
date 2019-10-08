@@ -40,45 +40,45 @@ namespace lift {
 /// This method is used to get an instance of the 'ComplexType'. This method
 /// asserts that all of the construction invariants were satisfied. To
 /// gracefully handle failed construction, getChecked should be used instead.
-FunctionType FunctionType::get(mlir::MLIRContext *context, FunctionType input, FunctionType output) {
+LambdaType LambdaType::get(mlir::MLIRContext *context, Nat input, Nat output) {
     // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
     // of this type. All parameters to the storage class are passed after the
     // type kind.
-    return Base::get(context, LiftTypeKind::LIFT_FUNCTIONTYPE, input, output);
+    return Base::get(context, LiftTypeKind::LIFT_LAMBDA, input, output);
 }
 
 /// This method is used to get an instance of the 'ComplexType', defined at
 /// the given location. If any of the construction invariants are invalid,
 /// errors are emitted with the provided location and a null type is returned.
 /// Note: This method is completely optional
-FunctionType FunctionType::getChecked(mlir::MLIRContext *context, FunctionType input, FunctionType output,
+LambdaType LambdaType::getChecked(mlir::MLIRContext *context, Nat input, Nat output,
                                       mlir::Location location) {
-    return Base::getChecked(location, context, LiftTypeKind::LIFT_FUNCTIONTYPE, input, output);
+    return Base::getChecked(location, context, LiftTypeKind::LIFT_LAMBDA, input, output);
 }
 
 /// This method is used to verify the construction invariants passed into the
 /// 'get' and 'getChecked' methods. Note: This method is completely optional.
-mlir::LogicalResult FunctionType::verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
+mlir::LogicalResult LambdaType::verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                                mlir::MLIRContext *context,
-                                                               FunctionType input, FunctionType output) {
-    if (!input.isa<FunctionType>()) {
+                                                               Nat input, Nat output) {
+    if (!input.isa<Nat>()) {
         if (loc)
-            emitError(loc.getValue(), "input is not a valid Type to construct FunctionType");
+            emitError(loc.getValue(), "input is not a valid Type to construct LambdaType");
         return mlir::failure();
     }
-    if (!output.isa<FunctionType>()) {
+    if (!output.isa<Nat>()) {
         if (loc)
-            emitError(loc.getValue(), "output is not a valid Type to construct FunctionType");
+            emitError(loc.getValue(), "output is not a valid Type to construct LambdaType");
         return mlir::failure();
     }
     return mlir::success();
 }
 
-FunctionType FunctionType::getInput() {
+Nat LambdaType::getInput() {
     return getImpl()->input;
 }
 
-FunctionType FunctionType::getOutput() {
+Nat LambdaType::getOutput() {
     return getImpl()->output;
 }
 

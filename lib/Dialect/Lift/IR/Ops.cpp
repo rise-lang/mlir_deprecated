@@ -17,7 +17,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Support/MathExtras.h"
-
+#include <iostream>
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////// Custom Operations for the Dialect /////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -28,24 +28,87 @@ using llvm::SmallVector;
 using llvm::StringRef;
 using llvm::Twine;
 
+
 namespace mlir {
 namespace lift {
 
+//===----------------------------------------------------------------------===//
+// LambdaOp
+//===----------------------------------------------------------------------===//
+ParseResult parseLambdaOp(OpAsmParser *parser, OperationState *result) {
+    auto &builder = parser->getBuilder();
+
+    OpAsmParser::OperandType lambdaInputVariable;
+    Type lambdaInputType;
+    Type lambdaOutputType;
+    // Parse the lambdaInput variable
+    if (parser->parseRegionArgument(lambdaInputVariable))
+        return failure();
+
+    //parse LambdaInputType
+    if (parser->parseColon() || parser->parseType(lambdaInputType))
+        return failure();
+
+    //parse LambdaOutputType
+    if (parser->parseArrow() || parser->parseType(lambdaOutputType))
+        return failure();
+
+    // Parse the body region.
+    Region *body = result->addRegion();
+    if (parser->parseRegion(*body, lambdaInputVariable, lambdaInputType))
+        return failure();
+    LambdaOp::ensureTerminator(*body, builder, result->location);
+
+    // Parse the optional attribute list.
+    if (parser->parseOptionalAttributeDict(result->attributes))
+        return failure();
+    // Set the operands list as resizable so that we can freely modify the bounds.
+
+    result->setOperandListToResizable();
 
 
-    static void print(OpAsmPrinter *p, LiteralOp &op) {
-        *p << "literal ";
-        p->printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"value"});
+    auto type = LambdaType::get(builder.getContext(), lambdaInputType.dyn_cast<Nat>(),
+                                lambdaOutputType.dyn_cast<Nat>());
+    result->addTypes(type);
+    return success();
+}
 
 
-        if (op.getAttrs().size() > 1)
-            *p << ' ';
-        p->printAttribute(op.getValue());
+//===----------------------------------------------------------------------===//
+// ReturnOp
+//===----------------------------------------------------------------------===//
+//ParseResult parseReturnOp(OpAsmParser *parser, OperationState *result) {
+//    auto &builder = parser->getBuilder();
+//
+//    OpAsmParser::OperandType value;
+//
+//    if (parser->parseOperand(value)) {
+//        result->addOperands()
+//    }
+//
+//    return success();
+//}
 
-        // If the value is a symbol reference, print a trailing type.
-        if (op.getValue().isa<SymbolRefAttr>())
-            *p << " : " << op.getType();
-    }
+
+
+
+
+
+
+
+
+static void print(OpAsmPrinter *p, LiteralOp &op) {
+    *p << "literal ";
+    p->printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"value"});
+
+    if (op.getAttrs().size() > 1)
+        *p << ' ';
+    p->printAttribute(op.getValue());
+
+    // If the value is a symbol reference, print a trailing type.
+    if (op.getValue().isa<SymbolRefAttr>())
+        *p << " : " << op.getType();
+}
 
 
 //    static void print(OpAsmPrinter *p, ApplyOp op) {

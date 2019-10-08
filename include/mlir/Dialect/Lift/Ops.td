@@ -45,6 +45,7 @@ Op<Lift_Dialect, mnemonic, traits> {
 //let printer = [{ return ::print(p, *this); }];
 //let verifier = [{ return ::verify(*this); }];
 //let parser = [{ return ::parse$cppClass(parser, result); }];
+
 }
 
 //def ApplyOp : Lift_Op<"apply", [NoSideEffect]> {
@@ -94,31 +95,39 @@ def SubclassOfKindType : AnyTypeOf<[KindType, NatType, LambdaType], "subclass of
 //TODO: add other Types
 
 
-def LambdaOp : Lift_Op<"lambda", [SingleBlockImplicitTerminator<"LiftTerminatorOp">]> {
+def LambdaOp : Lift_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let summary = "lambda";
 
-    let arguments = (ins Variadic<NatType>:$inputs);
+
     let regions = (region SizedRegion<1>:$region);
-    let results = (outs LambdaType:$lambda);
+    let results = (outs LambdaType:$lambda_result);
+
+    let parser = [{ return parse$cppClass(parser, result); }];
+
+//    let skipDefaultBuilders = 1;
+//    let builders = [OpBuilder<
+//        "Builder *, OperationState *result,"
+//        "Type lambda_result", [{
+//        result->addRegion();
+//        result->addTypes(lambda_result.cast<FunctionType>());
+//    }]>];
 }
 
 def ApplyOp : Lift_Op<"apply", []> {
     let summary = "apply";
-    let arguments = (ins Variadic<NatType>:$inputs, SubclassOfKindType:$lambda);
+    let arguments = (ins Variadic<NatType>:$inputs, LambdaType:$lambda);
     let results = (outs SubclassOfKindType:$result);
 }
 
-def LiftTerminatorOp : Lift_Op<"return", [Terminator]> {
+def ReturnOp : Lift_Op<"return", [Terminator]> {
     let summary = "lift terminator operation";
     let description = [{
-}];
+        }];
+    let arguments = (ins Variadic<AnyType>:$operands);
 
-// No custom parsing/printing form.
-let parser = ?;
-let printer = ?;
-
-// Fully specified by traits.
-let verifier = ?;
+    let builders = [OpBuilder<
+        "Builder *b, OperationState *result", [{ build(b, result, llvm::None); }]
+        >];
 }
 //def ForOp : Loop_Op<"for",
 //        [SingleBlockImplicitTerminator<"TerminatorOp">]> {

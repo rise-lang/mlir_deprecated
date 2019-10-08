@@ -18,7 +18,7 @@ namespace lift {
 
 namespace detail {
 struct LiftArrayTypeStorage;
-struct LiftFunctionTypeStorage;
+struct LiftLambdaTypeStorage;
 }
 
 /// LLVM-style RTTI: one entry per subclass to allow dyn_cast/isa.
@@ -109,46 +109,46 @@ public:
     }
 };
 
-class LambdaType : public mlir::Type::TypeBase<LambdaType, Kind> {
+//class LambdaType : public mlir::Type::TypeBase<LambdaType, Kind> {
+//public:
+//    /// Inherit some necessary constructors from 'TypeBase'.
+//    using Base::Base;
+//
+//    /// This static method is used to support type inquiry through isa, cast,
+//    /// and dyn_cast.
+//    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_LAMBDA; }
+//
+//    /// This method is used to get an instance of the 'SimpleType'. Given that
+//    /// this is a parameterless type, it just needs to take the context for
+//    /// uniquing purposes.
+//    static LambdaType get(mlir::MLIRContext *context) {
+//        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
+//        // of this type.
+//        return Base::get(context, LiftTypeKind::LIFT_LAMBDA);
+//    }
+//
+//};
+
+class LambdaType : public mlir::Type::TypeBase<LambdaType, Kind, detail::LiftLambdaTypeStorage> {
 public:
-    /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
 
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_LAMBDA; }
 
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static LambdaType get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, LiftTypeKind::LIFT_LAMBDA);
-    }
+    static LambdaType get(mlir::MLIRContext *context,
+                            Nat input, Nat output);
 
-};
-
-class FunctionType : public mlir::Type::TypeBase<FunctionType, Data, detail::LiftFunctionTypeStorage> {
-public:
-    using Base::Base;
-
-    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_FUNCTIONTYPE; }
-
-    static FunctionType get(mlir::MLIRContext *context,
-                            FunctionType input, FunctionType output);
-
-    static FunctionType getChecked(mlir::MLIRContext *context, FunctionType input, FunctionType output,
+    static LambdaType getChecked(mlir::MLIRContext *context, Nat input, Nat output,
                                    mlir::Location location);
 
 
     static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                             mlir::MLIRContext *context,
-                                                            FunctionType input, FunctionType output);
+                                                            Nat input, Nat output);
 
-    FunctionType getInput();
+    Nat getInput();
 
-    FunctionType getOutput();
+    Nat getOutput();
 };
 
 
