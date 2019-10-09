@@ -67,27 +67,120 @@ ParseResult parseLambdaOp(OpAsmParser *parser, OperationState *result) {
     result->setOperandListToResizable();
 
 
-    auto type = LambdaType::get(builder.getContext(), lambdaInputType.dyn_cast<Nat>(),
-                                lambdaOutputType.dyn_cast<Nat>());
+    auto type = LambdaType::get(builder.getContext(), lambdaInputType,
+                                lambdaOutputType);
     result->addTypes(type);
     return success();
+}
+
+
+
+
+//===----------------------------------------------------------------------===//
+// ParseLiteralOp
+//===----------------------------------------------------------------------===//
+ParseResult parseLiteralOp(OpAsmParser *parser, OperationState *result) {
+    auto &builder = parser->getBuilder();
+
+//    OpAsmParser::OperandType value;
+////    Attribute value;
+    Type literalType;
+//
+//
+//    if (parser->parseOperand(value))
+//        return failure();
+    Attribute attr;
+    if (parser->parseAttribute(attr, IntegerType::get(16, parser->getBuilder().getContext()), "literalValue",result->attributes))
+        return failure();
+
+
+    if (parser->parseColonType(literalType))
+        return failure();
+
+
+//    if(parser->parseAttribute(value, "literalValue", result->attributes))
+//        return failure();
+
+//    auto attr = builder.getTypeAttr(literalType);
+//    result->addAttribute("literalValue", attr);
+//    if (parser->parse)
+//    if(parser->parseColon())
+//        return failure();
+
+//    result->addAttribute("literalValue", value);
+    result->addTypes(literalType);
+
+    return success();
+}
+
+//===----------------------------------------------------------------------===//
+// ApplyOp
+//===----------------------------------------------------------------------===//
+ParseResult parseApplyOp(OpAsmParser *parser, OperationState *result) {
+//    auto &builder = parser->getBuilder();
+//
+//    OpAsmParser::OperandType InputVariable;
+//
+//
+//    Type lambdaInputType;
+//    Type lambdaOutputType;
+//    // Parse the lambdaInput variable
+//    if (parser->parseRegionArgument(lambdaInputVariable))
+//        return failure();
+//
+//    //parse LambdaInputType
+//    if (parser->parseColon() || parser->parseType(lambdaInputType))
+//        return failure();
+//
+//    //parse LambdaOutputType
+//    if (parser->parseArrow() || parser->parseType(lambdaOutputType))
+//        return failure();
+//
+//    // Parse the body region.
+//    Region *body = result->addRegion();
+//    if (parser->parseRegion(*body, lambdaInputVariable, lambdaInputType))
+//        return failure();
+//    LambdaOp::ensureTerminator(*body, builder, result->location);
+//
+//    // Parse the optional attribute list.
+//    if (parser->parseOptionalAttributeDict(result->attributes))
+//        return failure();
+//    // Set the operands list as resizable so that we can freely modify the bounds.
+//
+//    result->setOperandListToResizable();
+//
+//
+//    auto type = LambdaType::get(builder.getContext(), lambdaInputType,
+//                                lambdaOutputType);
+//    result->addTypes(type);
+//    return success();
 }
 
 
 //===----------------------------------------------------------------------===//
 // ReturnOp
 //===----------------------------------------------------------------------===//
-//ParseResult parseReturnOp(OpAsmParser *parser, OperationState *result) {
-//    auto &builder = parser->getBuilder();
+ParseResult parseReturnOp(OpAsmParser *parser, OperationState *result) {
+    auto &builder = parser->getBuilder();
+
+    OpAsmParser::OperandType value;
+
+    result->setOperandListToResizable();
+
+//    SmallVector<OpAsmParser::OperandType, 1> values;
+//    if (parser->parseOperandList(values, 0))
+//        return failure();
 //
-//    OpAsmParser::OperandType value;
-//
-//    if (parser->parseOperand(value)) {
-//        result->addOperands()
-//    }
-//
-//    return success();
-//}
+//    if (parser->resolveOperands(values, {Nat::get(parser->getBuilder().getContext())}, result->operands))
+//        return failure();
+
+
+    if (parser->parseOperand(value))
+        failure();
+    parser->resolveOperand(value, Nat::get(parser->getBuilder().getContext()), result->operands);
+
+    return success();
+}
 
 
 

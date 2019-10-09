@@ -33,6 +33,7 @@ enum LiftTypeKind {
     LIFT_ARRAY,
 };
 
+/// Maybe design Kind as subclass of Type
 class Kind : public mlir::Type::TypeBase<Kind, mlir::Type> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
@@ -51,6 +52,27 @@ public:
         return Base::get(context, LiftTypeKind::LIFT_KIND);
     }
 };
+
+
+class Data : public mlir::Type::TypeBase<Data, Kind> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_DATA; }
+
+    /// This method is used to get an instance of the 'SimpleType'. Given that
+    /// this is a parameterless type, it just needs to take the context for
+    /// uniquing purposes.
+    static Data get(mlir::MLIRContext *context) {
+        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
+        // of this type.
+        return Base::get(context, LiftTypeKind::LIFT_DATA);
+    }
+};
+
 
 class Nat : public mlir::Type::TypeBase<Nat, Kind> {
 public:
@@ -71,24 +93,7 @@ public:
     }
 };
 
-class Data : public mlir::Type::TypeBase<Data, Kind> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
 
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_DATA; }
-
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static Data get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, LiftTypeKind::LIFT_DATA);
-    }
-};
 
 class Float : public mlir::Type::TypeBase<Float, Data> {
 public:
@@ -136,19 +141,19 @@ public:
     static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_LAMBDA; }
 
     static LambdaType get(mlir::MLIRContext *context,
-                            Nat input, Nat output);
+                          Type input, Type output);
 
-    static LambdaType getChecked(mlir::MLIRContext *context, Nat input, Nat output,
+    static LambdaType getChecked(mlir::MLIRContext *context, Type input, Type output,
                                    mlir::Location location);
 
 
     static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                             mlir::MLIRContext *context,
-                                                            Nat input, Nat output);
+                                                            Type input, Type output);
 
-    Nat getInput();
+    Type getInput();
 
-    Nat getOutput();
+    Type getOutput();
 };
 
 

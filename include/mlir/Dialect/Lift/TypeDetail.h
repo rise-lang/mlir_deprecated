@@ -25,9 +25,9 @@ namespace lift {
 namespace detail {
 
 struct LiftLambdaTypeStorage : public mlir::TypeStorage {
-    LiftLambdaTypeStorage(Nat input, Nat output) : input(input), output(output) {}
+    LiftLambdaTypeStorage(Type input, Type output) : input(input), output(output) {}
 
-    using KeyTy = std::pair<Nat, Nat>;
+    using KeyTy = std::pair<Type, Type>;
 
     bool operator==(const KeyTy &key) const {
         return key == KeyTy(input, output);
@@ -37,7 +37,7 @@ struct LiftLambdaTypeStorage : public mlir::TypeStorage {
         return llvm::hash_combine(key.first, key.second);
     }
 
-    static KeyTy getKey(Nat input, Nat output) {
+    static KeyTy getKey(Type input, Type output) {
         return KeyTy(input, output);
     }
 
@@ -46,8 +46,8 @@ struct LiftLambdaTypeStorage : public mlir::TypeStorage {
         return new(allocator.allocate<LiftLambdaTypeStorage>()) LiftLambdaTypeStorage(key.first, key.second);
     }
 
-    Nat input;
-    Nat output;
+    Type input;
+    Type output;
 };
 
 

@@ -73,7 +73,7 @@ Op<Lift_Dialect, mnemonic, traits> {
 def LiteralOp : Lift_Op<"literal", [NoSideEffect]> {
     let summary = "literal";
 
-    let arguments = (ins AnyAttr:$value);
+    let arguments = (ins AnyAttr:$literalValue);
     let results = (outs AnyType);
 
 //    let builders = [OpBuilder<
@@ -85,6 +85,8 @@ def LiteralOp : Lift_Op<"literal", [NoSideEffect]> {
         /// and result type.
         static bool isBuildableWith(Attribute value, Type type);
     }];
+    let parser = [{ return parse$cppClass(parser, result); }];
+
 //    let hasFolder = 1;
 }
 
@@ -115,8 +117,10 @@ def LambdaOp : Lift_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
 
 def ApplyOp : Lift_Op<"apply", []> {
     let summary = "apply";
-    let arguments = (ins Variadic<NatType>:$inputs, LambdaType:$lambda);
+    let arguments = (ins NatType:$input, LambdaType:$lambda);
     let results = (outs SubclassOfKindType:$result);
+    let parser = [{ return parse$cppClass(parser, result); }];
+
 }
 
 def ReturnOp : Lift_Op<"return", [Terminator]> {
@@ -124,6 +128,7 @@ def ReturnOp : Lift_Op<"return", [Terminator]> {
     let description = [{
         }];
     let arguments = (ins Variadic<AnyType>:$operands);
+    let parser = [{ return parse$cppClass(parser, result); }];
 
     let builders = [OpBuilder<
         "Builder *b, OperationState *result", [{ build(b, result, llvm::None); }]
