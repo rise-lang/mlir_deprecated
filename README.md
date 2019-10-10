@@ -1,3 +1,10 @@
+### Exploring the work done in this fork
+* build target LIFT
+* run executable liftIL: `liftIL input.mlir --emit=mlir`
+* existing working inputs can be found in `test/Dialect/Lift/`
+
+
+existing README:
 # Multi-Level Intermediate Representation Overview
 
 The MLIR project aims to define a common intermediate representation (IR) that
