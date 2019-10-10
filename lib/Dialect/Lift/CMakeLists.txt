@@ -11,8 +11,8 @@ target_link_libraries(LIFT LLVMSupport)
 
 
 
-add_llvm_example(lift-tut1
-        liftTut1.cpp
+add_llvm_example(liftIL
+        liftIL.cpp
         IR/AST.cpp
         IR/LiftDialect.cpp
         IR/MLIRGen.cpp
@@ -20,7 +20,7 @@ add_llvm_example(lift-tut1
         IR/Types.cpp)
 
 include_directories(include/)
-target_link_libraries(lift-tut1
+target_link_libraries(liftIL
         PRIVATE
         LIFT
         MLIRAnalysis
