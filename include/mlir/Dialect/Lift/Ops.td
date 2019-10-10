@@ -45,20 +45,8 @@ Op<Lift_Dialect, mnemonic, traits> {
 //let printer = [{ return ::print(p, *this); }];
 //let verifier = [{ return ::verify(*this); }];
 //let parser = [{ return ::parse$cppClass(parser, result); }];
-
 }
 
-//def ApplyOp : Lift_Op<"apply", [NoSideEffect]> {
-//    let summary = "apply operation";
-//    let description = [{
-//        Add description for apply here.
-//    }];
-//
-//    let arguments = (ins
-//            FunctionType:$func,
-//            AnyType:$arg
-//            );
-//    let results = (outs FunctionType);
 //// No custom parsing/printing form.
 ////let parser = ?;
 ////let printer = ?;
@@ -67,7 +55,21 @@ Op<Lift_Dialect, mnemonic, traits> {
 ////let verifier = ?;
 //}
 
+///Types
+def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
+def LambdaType : Type<CPred<"$_self.isa<LambdaType>()">, "lambda type">;
+def DataType : Type<CPred<"$_self.isa<Data>()">, "data type">;
+def ArrayType : Type<CPred<"$_self.isa<ArrayType>()">, "array type">;
+def KindType : Type<CPred<"$_self.isa<Kind>()">, "kind type">;
+def SubclassOfKindType : AnyTypeOf<[KindType, NatType, LambdaType], "subclass of kind type">;
+//TODO: add other Types
 
+///Attributes
+def LiftTypeAttr : Attr<CPred<"$_self.isa<LiftTypeAttr>()">,
+        "lift type attribute">{
+    let storageType = [{ LiftTypeAttr }];
+    let returnType = [{ Type }];
+}
 
 
 def LiteralOp : Lift_Op<"literal", [NoSideEffect]> {
@@ -86,15 +88,19 @@ def LiteralOp : Lift_Op<"literal", [NoSideEffect]> {
         static bool isBuildableWith(Attribute value, Type type);
     }];
     let parser = [{ return parse$cppClass(parser, result); }];
-
 //    let hasFolder = 1;
 }
 
-def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
-def LambdaType : Type<CPred<"$_self.isa<LambdaType>()">, "lambda type">;
-def KindType : Type<CPred<"$_self.isa<Kind>()">, "kind type">;
-def SubclassOfKindType : AnyTypeOf<[KindType, NatType, LambdaType], "subclass of kind type">;
-//TODO: add other Types
+def ArrayOp : Lift_Op<"array", [NoSideEffect]> {
+    let summary = "array";
+
+    let arguments = (ins APIntAttr:$size, LiftTypeAttr:$elementType);
+    let results = (outs ArrayType);
+
+//    let extraClassDeclaration = [{Attribute getSize() { return getAttr("value"); }
+//        }];
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
 
 
 def LambdaOp : Lift_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {

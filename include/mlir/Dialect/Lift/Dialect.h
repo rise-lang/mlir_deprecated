@@ -59,6 +59,15 @@ public:
     /// only required for dialects that have custom types.
     /// Technically this is only needed to be able to round-trip to textual IR.
     void printType(mlir::Type type, llvm::raw_ostream &os) const override;
+
+
+    mlir::Attribute parseAttribute(llvm::StringRef attrData,
+            mlir::Type type, mlir::Location loc) const override;
+
+    /// Print an attribute registered to this dialect. Note: The type of the
+    /// attribute need not be printed by this method as it is always printed by
+    /// the caller.
+    void printAttribute(Attribute attribute, raw_ostream &os) const override;
 };
 
 } //end namespace lift

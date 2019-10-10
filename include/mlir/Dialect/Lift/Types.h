@@ -17,7 +17,7 @@ namespace mlir {
 namespace lift {
 
 namespace detail {
-struct LiftArrayTypeStorage;
+struct ArrayTypeStorage;
 struct LiftLambdaTypeStorage;
 }
 
@@ -162,34 +162,27 @@ public:
 /// MLIRContext. As such `LiftArrayType` only wraps a pointer to an uniqued
 /// instance of `LiftArrayTypeStorage` (defined in our implementation file) and
 /// provides the public facade API to interact with the type.
-class LiftArrayType : public mlir::Type::TypeBase<LiftArrayType, mlir::Type,
-        detail::LiftArrayTypeStorage> {
-
+class ArrayType : public mlir::Type::TypeBase<ArrayType, Data,
+        detail::ArrayTypeStorage> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
 
-    /// Returns the dimensions for this array, or and empty range for a generic
-    /// array.
-    llvm::ArrayRef<int64_t> getShape();
-
-    /// Predicate to test if this array is generic (shape haven't been inferred
-    /// yet).
-    bool isGeneric() { return getShape().empty(); }
-
-    /// Return the rank of this array (0 if it is generic).
-    int getRank() { return getShape().size(); }
-
-    /// Return the type of individual elements in the array.
-    mlir::Type getElementType();
+    static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
+                                                            mlir::MLIRContext *context,
+                                                            int size, Type elementType);
 
     /// Get the unique instance of this Type from the context.
-    /// A LiftArrayType is only defined by the shape of the array.
-    static LiftArrayType get(mlir::MLIRContext *context,
-                             llvm::ArrayRef<int64_t> shape = {});
+    static ArrayType get(mlir::MLIRContext *context,
+                             int size, Type elementType);
 
     /// Support method to enable LLVM-style RTTI type casting.
     static bool kindof(unsigned kind) { return kind == LiftTypeKind::LIFT_ARRAY; }
+
+    int getSize();
+    /// Return the type of individual elements in the array.
+    mlir::Type getElementType();
+
 };
 
 } //end namespace lift

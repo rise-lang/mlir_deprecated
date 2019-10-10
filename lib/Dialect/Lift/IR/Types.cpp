@@ -2,6 +2,7 @@
 // Created by martin on 2019-09-23.
 //
 
+#include <iostream>
 #include "mlir/Dialect/Lift/Types.h"
 #include "mlir/Dialect/Lift/TypeDetail.h"
 #include "mlir/Dialect/Lift/Dialect.h"
@@ -93,19 +94,40 @@ Type LambdaType::getOutput() {
 }
 
 //===----------------------------------------------------------------------===//
-// LiftArrayType
+// ArrayType
 //===----------------------------------------------------------------------===//
 
-mlir::Type LiftArrayType::getElementType() {
-    return mlir::FloatType::getF64(getContext());
+int ArrayType::getSize() { return getImpl()->getSize(); }
+
+mlir::Type ArrayType::getElementType() {
+    return getImpl()->getElementType();
 }
 
-LiftArrayType LiftArrayType::get(mlir::MLIRContext *context,
-                                 ArrayRef<int64_t> shape) {
-    return Base::get(context, LiftTypeKind::LIFT_ARRAY, shape);
+ArrayType ArrayType::get(mlir::MLIRContext *context,
+                                 int size, Type elementType) {
+    return Base::get(context, LiftTypeKind::LIFT_ARRAY, size, elementType);
 }
+/// This method is used to verify the construction invariants passed into the
+/// 'get' and 'getChecked' methods. Note: This method is completely optional.
+mlir::LogicalResult ArrayType::verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
+                                                             mlir::MLIRContext *context,
+                                                             int size, Type elementType) {
+    ///For some reason this method is called without a valid location in StorageUniquerSupport
 
-ArrayRef<int64_t> LiftArrayType::getShape() { return getImpl()->getShape(); }
+    //TODO: Determine here all valid types which an Array can contain
+
+    if (!(size > 0)) {
+        if (loc) {
+            emitError(loc.getValue(), "Arrays have to contain at least 1 element");
+        } else {
+            emitError(UnknownLoc::get(context), "Arrays have to contain at least 1 element");
+        }
+        return mlir::failure();
+    }
+
+
+    return mlir::success();
+}
 
 } //end namespace lift
 } //end namespace mlir

@@ -20,6 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <iostream>
+#include <sstream>
 #include "mlir/Dialect/Lift/Dialect.h"
 
 #include "mlir/IR/Builders.h"
@@ -44,13 +46,11 @@ namespace lift {
 /// point of registration of custom types and operations for the dialect.
 LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
     addOperations<
-            ConstantOp, GenericCallOp, PrintOp,
-            TransposeOp, ReshapeOp,
-            MulOp, AddOp,
 #define GET_OP_LIST
 #include "mlir/Dialect/Lift/Ops.cpp.inc"
     >();
-    addTypes<Kind, Nat, Data, Float, LambdaType>();
+    addTypes<Kind, Nat, Data, Float, LambdaType, ArrayType>();
+    addAttributes<LiftTypeAttr>();
 }
 
 
@@ -79,7 +79,7 @@ LiftDialect::LiftDialect(mlir::MLIRContext *ctx) : mlir::Dialect("lift", ctx) {
 //}
 
 
-/// Parse a type registered to this dialect, we expect only Lift arrays.
+/// Parse a type registered to this dialect
 mlir::Type LiftDialect::parseType(StringRef typeString, mlir::Location loc) const {
 
 
@@ -90,41 +90,64 @@ mlir::Type LiftDialect::parseType(StringRef typeString, mlir::Location loc) cons
             return Type();
         }
         // Split into input type and output type
-        StringRef inputData, outputData;
-        std::tie(inputData, outputData) = typeString.rsplit(',');
-        if (outputData.empty()) {
+        StringRef inputDataString, outputDataString;
+        std::tie(inputDataString, outputDataString) = typeString.rsplit(',');
+        if (outputDataString.empty()) {
             emitError(loc,
                       "expected comma to separate input type and output type '")
                     << typeString << "'";
             return Type();
         }
-        inputData = inputData.trim();
-        outputData = outputData.trim();
+        inputDataString = inputDataString.trim();
+        outputDataString = outputDataString.trim();
 
-        //Do further parsing to decide which types these are.
-        //for now always assume lift.nats
+        //We can specify `!lift.type` as well as just `type`
+        if (inputDataString.startswith("!lift."))
+            inputDataString.consume_front("!lift.");
+        if (outputDataString.startswith("!lift."))
+            outputDataString.consume_front("!lift.");
 
-        return LambdaType::get(getContext(), Nat::get(getContext()), Nat::get(getContext()));
+        Type inputData = parseType(inputDataString, loc);
+        Type outputData = parseType(outputDataString, loc);
+
+        return LambdaType::get(getContext(), inputData, outputData);
     }
-//
-//    if (tyData.startswith("fun")) {
-////      return FunctionType::get(getContext());
-//    }
+    if (typeString.startswith("array") || typeString.startswith("!lift.array")) {
+        std::cout << "full typeString: " << typeString.str() << "\n";
+        if (!typeString.consume_front("array<") || !typeString.consume_back(">")) {
+            emitError(loc, "lift.array delimiter <...> mismatch");
+            return Type();
+        }
 
+        // Split into size and elementType at the first `,`
+        StringRef sizeString, elementTypeString;
+        std::tie(sizeString, elementTypeString) = typeString.split(',');
+        if (elementTypeString.empty()) {
+            emitError(loc,
+                      "expected comma to separate size and elementType'")
+                    << typeString << "'";
+            return Type();
+        }
+
+        //getting rid of leading or trailing whitspaces etc.
+        sizeString = sizeString.trim();
+        elementTypeString = elementTypeString.trim();
+
+        //this should work, because sizeString has already been parsed to be an int
+        int size = std::stoi(sizeString);
+
+        if (elementTypeString.startswith("!lift."))
+            elementTypeString.consume_front("!lift.");
+        Type elementType = parseType(elementTypeString, loc);
+
+        std::cout << "have an array<" << size << ", " << elementTypeString.str() << "\n";
+
+        return ArrayType::get(getContext(), size, elementType);
+    }
     if (typeString.startswith("float")) {
-//      tyData = tyData.drop_front(StringRef("float").size());
-//
-//      if (tyData.empty())
-//          emitError(loc, "Float with no value given");
-        //TODO: Check, that float is structured correctly
         return Float::get(getContext());
     }
     if (typeString.startswith("nat")) {
-//      tyData = tyData.drop_front(StringRef("float").size());
-//
-//      if (tyData.empty())
-//          emitError(loc, "Float with no value given");
-        //TODO: Check, that float is structured correctly
         return Nat::get(getContext());
     }
 
@@ -140,20 +163,6 @@ void LiftDialect::printType(mlir::Type type, raw_ostream &os) const {
             os << "unknown lift type";
             return;
         }
-        case LiftTypeKind::LIFT_ARRAY: {
-            auto arrayTy = type.dyn_cast<LiftArrayType>();
-            if (!arrayTy) {
-                os << "unknown lift type";
-                return;
-            }
-            os << "array";
-            if (!arrayTy.getShape().empty()) {
-                os << "<";
-                mlir::interleaveComma(arrayTy.getShape(), os);
-                os << ">";
-            }
-            break;
-        }
         case LiftTypeKind::LIFT_FLOAT: {
             os << "float";
             break;
@@ -162,15 +171,74 @@ void LiftDialect::printType(mlir::Type type, raw_ostream &os) const {
             os << "nat";
             break;
         }
-        case LiftTypeKind ::LIFT_LAMBDA: {
+        case LiftTypeKind::LIFT_LAMBDA: {
             os << "lambda<" << type.dyn_cast<LambdaType>().getInput()
                 << ", " << type.dyn_cast<LambdaType>().getOutput()
+                << ">";
+            break;
+        }
+        case LiftTypeKind::LIFT_ARRAY: {
+            os << "array<" << type.dyn_cast<ArrayType>().getSize()
+                << ", " << type.dyn_cast<ArrayType>().getElementType()
                 << ">";
             break;
         }
         case LiftTypeKind::LIFT_FUNCTIONTYPE: {
             os << "fun";
             break;
+        }
+    }
+}
+
+mlir::Attribute LiftDialect::parseAttribute(llvm::StringRef attrString,
+        mlir::Type type, mlir::Location loc) const {
+
+    emitError(loc,
+              "")
+            << "I want to parse this attribute" << attrString;
+
+}
+
+void LiftDialect::printAttribute(Attribute attribute, raw_ostream &os) const {
+    //Not sure this is the right way to do Arrays
+
+
+    switch (attribute.getKind()) {
+        default: {
+            os << "unknown lift attribute";
+            return;
+        }
+        case LiftAttributeKind::LIFT_TYPE_ATTR: {
+            switch (attribute.dyn_cast<LiftTypeAttr>().getValue().getKind()) {
+                default: {
+                    os << "unknown lift type";
+                    return;
+                }
+                case LiftTypeKind::LIFT_FLOAT: {
+                    os << "float";
+                    break;
+                }
+                case LiftTypeKind::LIFT_NAT: {
+                    os << "nat";
+                    break;
+                }
+                case LiftTypeKind::LIFT_LAMBDA: {
+                    os << "lambda<" << attribute.dyn_cast<LiftTypeAttr>().getValue().dyn_cast<LambdaType>().getInput()
+                       << ", " << attribute.dyn_cast<LiftTypeAttr>().getValue().dyn_cast<LambdaType>().getOutput()
+                       << ">";
+                    break;
+                }
+                case LiftTypeKind::LIFT_ARRAY: {
+                    os << "array<" << attribute.dyn_cast<LiftTypeAttr>().getValue().dyn_cast<ArrayType>().getSize()
+                       << ", " << attribute.dyn_cast<LiftTypeAttr>().getValue().dyn_cast<ArrayType>().getElementType()
+                       << ">";
+                    break;
+                }
+                case LiftTypeKind::LIFT_FUNCTIONTYPE: {
+                    os << "fun";
+                    break;
+                }
+            }
         }
     }
 }

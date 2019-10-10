@@ -17,6 +17,7 @@ add_llvm_example(liftIL
         IR/LiftDialect.cpp
         IR/MLIRGen.cpp
         IR/Ops.cpp
+        IR/Attributes.cpp
         IR/Types.cpp)
 
 include_directories(include/)

@@ -53,43 +53,42 @@ struct LiftLambdaTypeStorage : public mlir::TypeStorage {
 
 /// This class holds the implementation of the LiftArrayType.
 /// It is intended to be uniqued based on its content and owned by the context.
-struct LiftArrayTypeStorage : public mlir::TypeStorage {
+struct ArrayTypeStorage : public mlir::TypeStorage {
+    ArrayTypeStorage(int size, Type elementType) : size(size), elementType(elementType) {}
     /// This defines how we unique this type in the context: our key contains
     /// only the shape, a more complex type would have multiple entries in the
     /// tuple here.
     /// The element of the tuples usually matches 1-1 the arguments from the
     /// public `get()` method arguments from the facade.
-    using KeyTy = std::tuple<ArrayRef<int64_t>>;
 
-    static unsigned hashKey(const KeyTy &key) {
-        return llvm::hash_combine(std::get<0>(key));
+    //TODO: array should only contain Lift types
+    using KeyTy = std::pair<int, Type>;
+
+    static llvm::hash_code hashKey(const KeyTy &key) {
+        return llvm::hash_combine(key.first, key.second);
     }
 
     /// When the key hash hits an existing type, we compare the shape themselves
     /// to confirm we have the right type.
-    bool operator==(const KeyTy &key) const { return key == KeyTy(getShape()); }
+    bool operator==(const KeyTy &key) const { return key == KeyTy(size, elementType); }
 
+
+    static KeyTy getKey(int size, Type elementType) {
+        return KeyTy(size, elementType);
+    }
     /// This is a factory method to create our type storage. It is only
     /// invoked after looking up the type in the context using the key and not
     /// finding it.
-    static LiftArrayTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
-                                           const KeyTy &key) {
-        // Copy the shape array into the bumpptr allocator owned by the context.
-        ArrayRef<int64_t> shape = allocator.copyInto(std::get<0>(key));
-
-        // Allocate the instance for the LiftArrayTypeStorage itself
-        auto *storage = allocator.allocate<LiftArrayTypeStorage>();
-        // Initialize the instance using placement new.
-        return new(storage) LiftArrayTypeStorage(shape);
+    static ArrayTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                            const KeyTy &key) {
+        return new(allocator.allocate<ArrayTypeStorage>()) ArrayTypeStorage(key.first, key.second);
     }
 
-    ArrayRef<int64_t> getShape() const { return shape; }
-
+    int getSize() const { return size; }
+    Type getElementType() const { return elementType; }
 private:
-    ArrayRef<int64_t> shape;
-
-    /// Constructor is only invoked from the `construct()` method above.
-    LiftArrayTypeStorage(ArrayRef<int64_t> shape) : shape(shape) {}
+    int size;
+    Type elementType;
 };
 
 } //end namespace detail
