@@ -87,26 +87,41 @@ ParseResult parseLambdaOp(OpAsmParser *parser, OperationState *result) {
 //}
 
 
+//ArrayType parseArrayLiteral()
+
 //===----------------------------------------------------------------------===//
 // ParseLiteralOp
 //===----------------------------------------------------------------------===//
 ParseResult parseLiteralOp(OpAsmParser *parser, OperationState *result) {
     auto &builder = parser->getBuilder();
 
-//    OpAsmParser::OperandType value;
+    if (succeeded(parser->parseOptionalLSquare())) {
+        //Houston, we have an array
+
+        ///These should be parsable
+        ///%0 = rise.array [1,5,6,1,0]
+        ///%0 = rise.array [[1,2],[2,3]]
+
+//        if (parser->parseComm)
+//        while (succeeded(parser->parseOptionalComma())) {
+//
+//        }
+
+    } else {
+        //    OpAsmParser::OperandType value;
 ////    Attribute value;
-    mlir::Type literalType;
+        mlir::Type literalType;
 //
 //
 //    if (parser->parseOperand(value))
 //        return failure();
-    Attribute attr;
-    if (parser->parseAttribute(attr, IntegerType::get(16, parser->getBuilder().getContext()), "literalValue",result->attributes))
-        return failure();
+        Attribute attr;
+        if (parser->parseAttribute(attr, IntegerType::get(16, parser->getBuilder().getContext()), "literalValue",result->attributes))
+            return failure();
 
 
-    if (parser->parseColonType(literalType))
-        return failure();
+        if (parser->parseColonType(literalType))
+            return failure();
 
 
 //    if(parser->parseAttribute(value, "literalValue", result->attributes))
@@ -119,7 +134,10 @@ ParseResult parseLiteralOp(OpAsmParser *parser, OperationState *result) {
 //        return failure();
 
 //    result->addAttribute("literalValue", value);
-    result->addTypes(literalType);
+        result->addTypes(literalType);
+
+    }
+
 
     return success();
 }
