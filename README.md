@@ -1,3 +1,12 @@
+Exploring the work done in this fork
+
+    checkout development branch
+    build target RISE
+    run executable riseIL: riseIL input.mlir --emit=mlir
+    existing working inputs can be found in test/Dialect/Rise/
+
+existing README:
+
 # Multi-Level Intermediate Representation Overview
 
 The MLIR project aims to define a common intermediate representation (IR) that
