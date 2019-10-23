@@ -1,7 +1,7 @@
 ### Exploring the work done in this fork
-* build target LIFT
-* run executable liftIL: `liftIL input.mlir --emit=mlir`
-* existing working inputs can be found in `test/Dialect/Lift/`
+* build target RISE
+* run executable riseIL: `riseIL input.mlir --emit=mlir`
+* existing working inputs can be found in `test/Dialect/Rise/`
 
 
 existing README:
