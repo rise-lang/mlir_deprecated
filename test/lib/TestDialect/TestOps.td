@@ -35,7 +35,16 @@ class TEST_Op<string mnemonic, list<OpTrait> traits = []> :
 // Test Types
 //===----------------------------------------------------------------------===//
 
-def AnyVectorOrTensor: AnyTypeOf<[AnyVector, AnyTensor]>;
+def ComplexF64 : Complex<F64>;
+def ComplexOp : TEST_Op<"complex_f64"> {
+  let results = (outs ComplexF64);
+}
+
+def ComplexTensorOp : TEST_Op<"complex_f64_tensor"> {
+  let results = (outs TensorOf<[ComplexF64]>);
+}
+
+def AnyShaped: ShapedContainerType<[AnyType], IsShapedTypePred, "shaped">;
 
 def TupleOp : TEST_Op<"tuple_32_bit"> {
   let results = (outs TupleOf<[I32, F32]>);
@@ -247,69 +256,80 @@ def SameOperandAndResultElementTypeOp : TEST_Op<"same_operand_and_result_element
 }
 
 def SameOperandShapeOp : TEST_Op<"same_operand_shape", [SameOperandsShape]> {
-  let arguments = (ins Variadic<AnyVectorOrTensor>);
-  let results = (outs AnyVectorOrTensor);
+  let arguments = (ins Variadic<AnyShaped>);
 }
 
 def SameOperandAndResultShapeOp : TEST_Op<"same_operand_and_result_shape",
     [SameOperandsAndResultShape]> {
-  let arguments = (ins Variadic<AnyVectorOrTensor>);
-  let results = (outs Variadic<AnyVectorOrTensor>);
+  let arguments = (ins Variadic<AnyShaped>);
+  let results = (outs Variadic<AnyShaped>);
+}
+
+def SameOperandAndResultTypeOp : TEST_Op<"same_operand_and_result_type",
+    [SameOperandsAndResultType]> {
+  let arguments = (ins Variadic<AnyType>);
+  let results = (outs Variadic<AnyType>);
 }
 
 def ArgAndResHaveFixedElementTypesOp :
     TEST_Op<"arg_and_res_have_fixed_element_types",
       [PredOpTrait<"fixed type combination",
-         Or<[And<[ElementTypeIsPred<"x", I32>,
-                  ElementTypeIsPred<"y", F32>]>,
-             ElementTypeIsPred<"attr", I8>]>>,
+         And<[ElementTypeIsPred<"x", I32>,
+              ElementTypeIsPred<"y", F32>]>>,
       ElementTypeIs<"res", I16>]> {
   let arguments = (ins
-    AnyVectorOrTensor:$x, AnyVectorOrTensor:$y, AnyAttr:$attr);
-  let results = (outs AnyVectorOrTensor:$res);
+    AnyShaped:$x, AnyShaped:$y);
+  let results = (outs AnyShaped:$res);
 }
 
 def OperandsHaveSameElementType : TEST_Op<"operands_have_same_element_type", [
     AllElementTypesMatch<["x", "y"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
+  let arguments = (ins AnyType:$x, AnyType:$y);
 }
 
-def OperandOneAndResultHaveSameElementType : TEST_Op<
-    "operand_one_and_result_have_same_element_type",
+def OperandZeroAndResultHaveSameElementType : TEST_Op<
+    "operand0_and_result_have_same_element_type",
     [AllElementTypesMatch<["x", "res"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
-  let results = (outs AnyTensor:$res);
+  let arguments = (ins AnyType:$x, AnyType:$y);
+  let results = (outs AnyType:$res);
 }
 
 def OperandsHaveSameType :
     TEST_Op<"operands_have_same_type", [AllTypesMatch<["x", "y"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
+  let arguments = (ins AnyType:$x, AnyType:$y);
 }
 
-def OperandOneAndResultHaveSameType :
-    TEST_Op<"operand_one_and_result_have_same_type",
+def OperandZeroAndResultHaveSameType :
+    TEST_Op<"operand0_and_result_have_same_type",
             [AllTypesMatch<["x", "res"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
-  let results = (outs AnyTensor:$res);
+  let arguments = (ins AnyType:$x, AnyType:$y);
+  let results = (outs AnyType:$res);
 }
 
 def OperandsHaveSameRank :
     TEST_Op<"operands_have_same_rank", [AllRanksMatch<["x", "y"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
+  let arguments = (ins AnyShaped:$x, AnyShaped:$y);
 }
 
-def Operand1AndResultHaveSameRank :
-    TEST_Op<"operand1_and_result_have_same_rank",
+def OperandZeroAndResultHaveSameRank :
+    TEST_Op<"operand0_and_result_have_same_rank",
             [AllRanksMatch<["x", "res"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
-  let results = (outs AnyTensor:$res);
+  let arguments = (ins AnyShaped:$x, AnyShaped:$y);
+  let results = (outs AnyShaped:$res);
 }
 
-def Operand1AndResultHaveSameElementCount :
-    TEST_Op<"operand1_and_result_have_same_element_count",
+def OperandZeroAndResultHaveSameShape :
+    TEST_Op<"operand0_and_result_have_same_shape",
+            [AllShapesMatch<["x", "res"]>]> {
+  let arguments = (ins AnyShaped:$x, AnyShaped:$y);
+  let results = (outs AnyShaped:$res);
+}
+
+def OperandZeroAndResultHaveSameElementCount :
+    TEST_Op<"operand0_and_result_have_same_element_count",
             [AllElementCountsMatch<["x", "res"]>]> {
-  let arguments = (ins AnyTensor:$x, AnyTensor:$y);
-  let results = (outs AnyTensor:$res);
+  let arguments = (ins AnyShaped:$x, AnyShaped:$y);
+  let results = (outs AnyShaped:$res);
 }
 
 def FourEqualsFive :
@@ -319,8 +339,8 @@ def OperandRankEqualsResultSize :
     TEST_Op<"operand_rank_equals_result_size",
             [AllMatch<[Rank<"operand">.result, ElementCount<"result">.result],
                       "operand rank equals result size">]> {
-  let arguments = (ins AnyTensor:$operand);
-  let results = (outs AnyTensor:$result);
+  let arguments = (ins AnyShaped:$operand);
+  let results = (outs AnyShaped:$result);
 }
 
 def IfFirstOperandIsNoneThenSoIsSecond :
@@ -406,6 +426,28 @@ def OpJ : TEST_Op<"op_j">, Arguments<(ins)>, Results<(outs I32)>;
 def OpK : TEST_Op<"op_k">, Arguments<(ins)>, Results<(outs I32)>;
 def : Pat<(OpJ), (OpK)>;
 
+def OpInterleavedOperandAttribute1 : TEST_Op<"interleaved_operand_attr1"> {
+  let arguments = (ins
+    I32:$input1,
+    I64Attr:$attr1,
+    I32:$input2,
+    I64Attr:$attr2
+  );
+}
+
+def OpInterleavedOperandAttribute2 : TEST_Op<"interleaved_operand_attr2"> {
+  let arguments = (ins
+    I32:$input1,
+    I64Attr:$attr1,
+    I32:$input2,
+    I64Attr:$attr2
+  );
+}
+
+// Test that we can capture and reference interleaved operands and attributes.
+def : Pat<(OpInterleavedOperandAttribute1 $input1, $attr1, $input2, $attr2),
+          (OpInterleavedOperandAttribute2 $input1, $attr1, $input2, $attr2)>;
+
 // Test NativeCodeCall.
 def OpNativeCodeCall1 : TEST_Op<"native_code_call1"> {
   let arguments = (ins
@@ -422,14 +464,14 @@ def OpNativeCodeCall2 : TEST_Op<"native_code_call2"> {
 // Native code call to invoke a C++ function
 def CreateOperand: NativeCodeCall<"chooseOperand($0, $1, $2)">;
 // Native code call to invoke a C++ expression
-def CreateArraryAttr: NativeCodeCall<"$_builder.getArrayAttr({$0, $1})">;
+def CreateArrayAttr: NativeCodeCall<"$_builder.getArrayAttr({$0, $1})">;
 // Test that we can use NativeCodeCall to create operand and attribute.
 // This pattern chooses between $input1 and $input2 according to $choice and
 // it combines $attr1 and $attr2 into an array attribute.
 def : Pat<(OpNativeCodeCall1 $input1, $input2,
                              ConstBoolAttrTrue:$choice, $attr1, $attr2),
           (OpNativeCodeCall2 (CreateOperand $input1, $input2, $choice),
-                             (CreateArraryAttr $attr1, $attr2))>;
+                             (CreateArrayAttr $attr1, $attr2))>;
 // Note: the following is just for testing purpose.
 // Should use the replaceWithValue directive instead.
 def UseOpResult: NativeCodeCall<"$0">;
@@ -437,6 +479,15 @@ def UseOpResult: NativeCodeCall<"$0">;
 def : Pat<(OpNativeCodeCall1 $input1, $input2,
                              ConstBoolAttrFalse, $attr1, $attr2),
           (UseOpResult $input2)>;
+
+def OpNativeCodeCall3 : TEST_Op<"native_code_call3"> {
+  let arguments = (ins I32:$input);
+  let results = (outs I32);
+}
+// Test that NativeCodeCall is not ignored if it is not used to directly
+// replace the matched root op.
+def : Pattern<(OpNativeCodeCall3 $input),
+              [(NativeCodeCall<"createOpI($_builder, $0)"> $input), (OpK)]>;
 
 // Test AllAttrConstraintsOf.
 def OpAllAttrConstraint1 : TEST_Op<"all_attr_constraint_of1"> {
@@ -476,6 +527,12 @@ def TestOpWithRegionFold : TEST_Op<"op_with_region_fold"> {
   let arguments = (ins I32:$operand);
   let results = (outs I32);
   let regions = (region SizedRegion<1>:$region);
+  let hasFolder = 1;
+}
+
+def TestOpWithVariadicResultsAndFolder: TEST_Op<"op_with_variadic_results_and_folder"> {
+  let arguments = (ins Variadic<I32>:$operands);
+  let results = (outs Variadic<I32>);
   let hasFolder = 1;
 }
 
@@ -520,6 +577,14 @@ def : Pattern<
         (OpSymbolBindingD $res_b, $res_c, $attr)],
     // Use bound symbols in additional constraints
     [(HasOneUse $res_a)]>;
+
+def OpSymbolBindingNoResult : TEST_Op<"symbol_binding_no_result", []> {
+  let arguments = (ins I32:$operand);
+}
+
+// Test that we can bind to an op without results and reference it later.
+def : Pat<(OpSymbolBindingNoResult:$op $operand),
+          (NativeCodeCall<"handleNoResultOp($_builder, $0)"> $op)>;
 
 //===----------------------------------------------------------------------===//
 // Test Patterns (Attributes)
@@ -676,7 +741,7 @@ def OneVResOneVOperandOp2 : TEST_Op<"one_variadic_out_one_variadic_in2"> {
 }
 
 // Rewrite an op with one variadic operand and one variadic result to
-// another similiar op.
+// another similar op.
 def : Pat<(OneVResOneVOperandOp1 $inputs), (OneVResOneVOperandOp2 $inputs)>;
 
 def MixedVOperandOp1 : TEST_Op<"mixed_variadic_in1",
@@ -791,6 +856,7 @@ def ILLegalOpE : TEST_Op<"illegal_op_e">, Results<(outs I32)>;
 def ILLegalOpF : TEST_Op<"illegal_op_f">, Results<(outs I32)>;
 def LegalOpA : TEST_Op<"legal_op_a">,
   Arguments<(ins Test_LegalizerEnum:$status)>, Results<(outs I32)>;
+def LegalOpB : TEST_Op<"legal_op_b">, Results<(outs I32)>;
 
 // Check that smaller pattern depths are chosen, i.e. prioritize more direct
 // mappings.

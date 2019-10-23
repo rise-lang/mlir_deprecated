@@ -40,6 +40,11 @@ include "mlir/Dialect/SPIRV/SPIRVBase.td"
 include "mlir/Dialect/SPIRV/SPIRVArithmeticOps.td"
 #endif // SPIRV_ARITHMETIC_OPS
 
+#ifdef SPIRV_BIT_OPS
+#else
+include "mlir/Dialect/SPIRV/SPIRVBitOps.td"
+#endif // SPIRV_BIT_OPS
+
 #ifdef SPIRV_CONTROLFLOW_OPS
 #else
 include "mlir/Dialect/SPIRV/SPIRVControlFlowOps.td"
@@ -480,12 +485,21 @@ def SPV_StoreOp : SPV_Op<"Store", []> {
     OptionalAttr<I32Attr>:$alignment
   );
 
+  let builders = [
+    OpBuilder<"Builder *builder, OperationState &state, "
+      "Value *ptr, Value *value, ArrayRef<NamedAttribute> namedAttrs", [{
+      state.addOperands(ptr);
+      state.addOperands(value);
+      state.addAttributes(namedAttrs);
+    }]>
+  ];
+
   let results = (outs);
 }
 
 // -----
 
-def SPV_UndefOp : SPV_Op<"Undef", []> {
+def SPV_UndefOp : SPV_Op<"undef", []> {
   let summary = "Make an intermediate object whose value is undefined.";
 
   let description = [{
@@ -498,14 +512,14 @@ def SPV_UndefOp : SPV_Op<"Undef", []> {
     ### Custom assembly form
 
     ``` {.ebnf}
-    undef-op ::= `spv.Undef` `:` sprirv-type
+    undef-op ::= `spv.undef` `:` sprirv-type
     ```
 
     For example:
 
     ```
-    %0 = spv.Undef : f32
-    %1 = spv.Undef : !spv.struct<!spv.array<4 x vector<4xi32>>>
+    %0 = spv.undef : f32
+    %1 = spv.undef : !spv.struct<!spv.array<4 x vector<4xi32>>>
     ```
   }];
 
@@ -516,6 +530,9 @@ def SPV_UndefOp : SPV_Op<"Undef", []> {
   );
 
   let verifier = [{ return success(); }];
+
+  let hasOpcode = 0;
+  let autogenSerialization = 0;
 }
 
 // -----

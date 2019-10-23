@@ -323,9 +323,7 @@ def LLVM_FPTruncOp : LLVM_CastOp<"fptrunc", "CreateFPTrunc">;
 // Call-related operations.
 def LLVM_CallOp : LLVM_Op<"call">,
                   Arguments<(ins OptionalAttr<SymbolRefAttr>:$callee,
-                             // TODO(b/133216756): fix test failure and
-                             // change to LLVM_Type
-                             Variadic<AnyType>)>,
+                             Variadic<LLVM_Type>)>,
                   Results<(outs Variadic<LLVM_Type>)>,
                   LLVM_TwoBuilders<LLVM_OneResultOpBuilder,
                                    LLVM_ZeroResultOpBuilder> {
@@ -488,7 +486,7 @@ def LLVM_AddressOfOp
 }
 
 def LLVM_GlobalOp
-    : LLVM_ZeroResultOp<"mlir.global">,
+    : LLVM_ZeroResultOp<"mlir.global", [Symbol]>,
       Arguments<(ins TypeAttr:$type, UnitAttr:$constant, StrAttr:$sym_name,
                  OptionalAttr<AnyAttr>:$value,
                  DefaultValuedAttr<NonNegativeI32Attr, "0">:$addr_space)> {
@@ -516,7 +514,8 @@ def LLVM_GlobalOp
 }
 
 def LLVM_LLVMFuncOp : LLVM_ZeroResultOp<"func",
-      [NativeOpTrait<"IsIsolatedFromAbove">, NativeOpTrait<"FunctionLike">]> {
+      [NativeOpTrait<"IsIsolatedFromAbove">, NativeOpTrait<"FunctionLike">,
+       Symbol]> {
   let summary = "LLVM dialect function, has wrapped LLVM IR function type";
 
   let regions = (region AnyRegion:$body);
@@ -525,11 +524,15 @@ def LLVM_LLVMFuncOp : LLVM_ZeroResultOp<"func",
 
   let builders = [
     OpBuilder<"Builder *builder, OperationState &result, StringRef name, "
-              "LLVMType type, ArrayRef<NamedAttribute> attrs, "
+              "LLVMType type, ArrayRef<NamedAttribute> attrs = {}, "
               "ArrayRef<NamedAttributeList> argAttrs = {}">
   ];
 
   let extraClassDeclaration = [{
+    // Add an entry block to an empty function, and set up the block arguments
+    // to match the signature of the function.
+    Block *addEntryBlock();
+
     LLVMType getType() {
       return getAttrOfType<TypeAttr>(getTypeAttrName())
           .getValue().cast<LLVMType>();
@@ -541,6 +544,10 @@ def LLVM_LLVMFuncOp : LLVM_ZeroResultOp<"func",
     // Hook for OpTrait::FunctionLike, returns the number of function arguments.
     // Depends on the type attribute being correct as checked by verifyType.
     unsigned getNumFuncArguments();
+
+    // Hook for OpTrait::FunctionLike, returns the number of function results.
+    // Depends on the type attribute being correct as checked by verifyType.
+    unsigned getNumFuncResults();
 
     // Hook for OpTrait::FunctionLike, called after verifying that the 'type'
     // attribute is present.  This can check for preconditions of the
@@ -554,6 +561,15 @@ def LLVM_LLVMFuncOp : LLVM_ZeroResultOp<"func",
     return impl::parseFunctionLikeOp(parser, result, /*allowVariadic=*/true,
                                      buildLLVMFunctionType);
   }];
+}
+
+def LLVM_NullOp
+    : LLVM_OneResultOp<"mlir.null", [NoSideEffect]>,
+      LLVM_Builder<"$res = llvm::ConstantPointerNull::get("
+                   "    llvm::cast<llvm::PointerType>($_resultType));"> {
+  let parser = [{ return parseNullOp(parser, result); }];
+  let printer = [{ printNullOp(p, *this); }];
+  let verifier = [{ return ::verify(*this); }];
 }
 
 def LLVM_UndefOp : LLVM_OneResultOp<"mlir.undef", [NoSideEffect]>,
@@ -575,7 +591,7 @@ def LLVM_ConstantOp
 // operations and intrinsics. However, we systematically prefix them with
 // "intr." to avoid potential name clashes.
 
-def LLVM_fmuladd : LLVM_Op<"intr.fmuladd", [NoSideEffect]>,
+def LLVM_FMulAddOp : LLVM_Op<"intr.fmuladd", [NoSideEffect]>,
                    Arguments<(ins LLVM_Type:$a, LLVM_Type:$b, LLVM_Type:$c)>,
                    Results<(outs LLVM_Type:$res)> {
   let llvmBuilder = [{
@@ -587,4 +603,14 @@ def LLVM_fmuladd : LLVM_Op<"intr.fmuladd", [NoSideEffect]>,
   }];
 }
 
+def LLVM_ExpOp : LLVM_Op<"intr.exp", [NoSideEffect]>,
+                   Arguments<(ins LLVM_Type:$in)>,
+                   Results<(outs LLVM_Type:$res)> {
+  let llvmBuilder = [{
+    llvm::Module *module = builder.GetInsertBlock()->getModule();
+    llvm::Function *fn = llvm::Intrinsic::getDeclaration(
+        module, llvm::Intrinsic::exp, {$in->getType()});
+    $res = builder.CreateCall(fn, {$in});
+  }];
+}
 #endif // LLVMIR_OPS

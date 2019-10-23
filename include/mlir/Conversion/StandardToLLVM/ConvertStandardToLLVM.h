@@ -50,6 +50,12 @@ public:
   /// non-standard or non-builtin types.
   Type convertType(Type t) override;
 
+  /// Convert a function type.  The arguments and results are converted one by
+  /// one and results are packed into a wrapped LLVM IR structure type. `result`
+  /// is populated with argument mapping.
+  LLVM::LLVMType convertFunctionSignature(FunctionType type, bool isVariadic,
+                                          SignatureConversion &result);
+
   /// Convert a non-empty list of types to be returned from a function into a
   /// supported LLVM IR type.  In particular, if more than one values is
   /// returned, create an LLVM IR structure type with elements that correspond
@@ -75,6 +81,11 @@ public:
   /// C/C++ ABI lowering related to struct argument passing.
   Value *promoteOneMemRefDescriptor(Location loc, Value *operand,
                                     OpBuilder &builder);
+
+  static constexpr unsigned kPtrPosInMemRefDescriptor = 0;
+  static constexpr unsigned kOffsetPosInMemRefDescriptor = 1;
+  static constexpr unsigned kSizePosInMemRefDescriptor = 2;
+  static constexpr unsigned kStridePosInMemRefDescriptor = 3;
 
 protected:
   /// LLVM IR module used to parse/create types.

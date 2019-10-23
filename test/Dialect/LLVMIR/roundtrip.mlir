@@ -2,7 +2,7 @@
 
 // CHECK-LABEL: func @ops(%arg0: !llvm.i32, %arg1: !llvm.float)
 func @ops(%arg0 : !llvm.i32, %arg1 : !llvm.float) {
-// Integer artithmetics binary operations.
+// Integer arithmetic binary operations.
 //
 // CHECK-NEXT:  %0 = llvm.add %arg0, %arg0 : !llvm.i32
 // CHECK-NEXT:  %1 = llvm.sub %arg0, %arg0 : !llvm.i32
@@ -86,6 +86,13 @@ func @ops(%arg0 : !llvm.i32, %arg1 : !llvm.float) {
 // CHECK-NEXT:  %26 = llvm.ptrtoint %25 : !llvm<"i32*"> to !llvm.i32
   %25 = llvm.inttoptr %arg0 : !llvm.i32 to !llvm<"i32*">
   %26 = llvm.ptrtoint %25 : !llvm<"i32*"> to !llvm.i32
+
+// Extended and Quad floating point
+//
+// CHECK:       %27 = llvm.fpext %arg1 : !llvm.float to !llvm.x86_fp80
+// CHECK-NEXT:  %28 = llvm.fpext %arg1 : !llvm.float to !llvm.fp128
+  %27 = llvm.fpext %arg1 : !llvm.float to !llvm.x86_fp80
+  %28 = llvm.fpext %arg1 : !llvm.float to !llvm.fp128
 
 // CHECK:  llvm.return
   llvm.return
@@ -187,5 +194,14 @@ func @alloca(%size : !llvm.i64) {
   llvm.alloca %size x !llvm.i32 {alignment = 0} : (!llvm.i64) -> (!llvm<"i32*">)
   // CHECK-NEXT: llvm.alloca %{{.*}} x !llvm.i32 {alignment = 8 : i64} : (!llvm.i64) -> !llvm<"i32*">
   llvm.alloca %size x !llvm.i32 {alignment = 8} : (!llvm.i64) -> (!llvm<"i32*">)
+  llvm.return
+}
+
+// CHECK-LABEL: @null
+func @null() {
+  // CHECK: llvm.mlir.null : !llvm<"i8*">
+  %0 = llvm.mlir.null : !llvm<"i8*">
+  // CHECK: llvm.mlir.null : !llvm<"{ void (i32, void ()*)*, i64 }*">
+  %1 = llvm.mlir.null : !llvm<"{void(i32, void()*)*, i64}*">
   llvm.return
 }

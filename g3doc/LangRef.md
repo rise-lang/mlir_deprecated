@@ -164,7 +164,7 @@ bare-id ::= (letter|[_]) (letter|digit|[_$.])*
 bare-id-list ::= bare-id (`,` bare-id)*
 suffix-id ::= digit+ | ((letter|id-punct) (letter|id-punct|digit)*)
 
-symbol-ref-id ::= `@` bare-id
+symbol-ref-id ::= `@` (bare-id | string-literal)
 ssa-id ::= `%` suffix-id
 ssa-id-list ::= ssa-id (`,` ssa-id)*
 
@@ -321,10 +321,18 @@ name via a string attribute like [SymbolRefAttr](#symbol-reference-attribute)):
 function ::= `func` function-signature function-attributes? function-body?
 
 function-signature ::= symbol-ref-id `(` argument-list `)`
-                       (`->` function-result-type)?
+                       (`->` function-result-list)?
+
 argument-list ::= (named-argument (`,` named-argument)*) | /*empty*/
 argument-list ::= (type attribute-dict? (`,` type attribute-dict?)*) | /*empty*/
 named-argument ::= ssa-id `:` type attribute-dict?
+
+function-result-list ::= function-result-list-parens
+                       | non-function-type
+function-result-list-parens ::= `(` `)`
+                              | `(` function-result-list-no-parens `)`
+function-result-list-no-parens ::= function-result (`,` function-result)*
+function-result ::= type attribute-dict?
 
 function-attributes ::= `attributes` attribute-dict
 function-body ::= region
@@ -568,8 +576,10 @@ system.
 
 ``` {.ebnf}
 dialect-type ::= '!' dialect-namespace '<' '"' type-specific-data '"' '>'
-dialect-type ::= '!' alias-name pretty-dialect-type-body?
+dialect-type ::= '!' dialect-namespace '.' pretty-dialect-type-lead-ident
+                          pretty-dialect-type-body?
 
+pretty-dialect-type-lead-ident ::= '[A-Za-z][A-Za-z0-9._]*'
 pretty-dialect-type-body ::= '<' pretty-dialect-type-contents+ '>'
 pretty-dialect-type-contents ::= pretty-dialect-type-body
                               | '(' pretty-dialect-type-contents+ ')'
@@ -804,7 +814,7 @@ memref<16x32xf32, #identity, memspace0>
 // The memref index space is of size %M x %N, while %B1 and %B2 bind to the
 // symbols s0, s1 respectively of the layout map #tiled_dynamic. Data tiles of
 // size %B1 x %B2 in the logical space will be stored contiguously in memory.
-// The allocation size will be (%M ceildiv %B1) * %B1 * (%N ceildiv %B2) * %B2 
+// The allocation size will be (%M ceildiv %B1) * %B1 * (%N ceildiv %B2) * %B2
 // f32 elements.
 %T = alloc(%M, %N) [%B1, %B2] : memref<?x?xf32, #tiled_dynamic>
 
@@ -859,7 +869,6 @@ spaces on which the map operates. The index space is always non-negative and
 integral. In addition, an index map must specify the size of each of its range
 dimensions onto which it maps. Index map symbols must be listed in order with
 symbols for dynamic dimension sizes first, followed by other required symbols.
-
 
 ##### Layout Map
 
@@ -948,7 +957,7 @@ Syntax:
 
 ``` {.ebnf}
 tensor-type ::= `tensor` `<` dimension-list tensor-memref-element-type `>`
-tensor-memref-element-type ::= vector-element-type | vector-type
+tensor-memref-element-type ::= vector-element-type | vector-type | complex-type
 
 // memref requires a known rank, but tensor does not.
 dimension-list ::= dimension-list-ranked | (`*` `x`)
@@ -1072,14 +1081,14 @@ contextually dependent on what they are attached to.
 
 There are two main classes of attributes; dependent and dialect. Dependent
 attributes derive their structure and meaning from what they are attached to,
-e.g the meaning of the `index` attribute on a `dim` operation is defined by the
-`dim` operation. Dialect attributes, on the other hand, derive their context and
-meaning from a specific dialect. An example of a dialect attribute may be a
+e.g., the meaning of the `index` attribute on a `dim` operation is defined by
+the `dim` operation. Dialect attributes, on the other hand, derive their context
+and meaning from a specific dialect. An example of a dialect attribute may be a
 `swift.self` function argument attribute that indicates an argument is the
 self/context parameter. The context of this attribute is defined by the `swift`
 dialect and not the function argument.
 
-Attributes values are represented by the following forms:
+Attribute values are represented by the following forms:
 
 ``` {.ebnf}
 attribute-value ::= attribute-alias | dialect-attribute | standard-attribute
@@ -1116,8 +1125,10 @@ Similarly to operations, dialects may define custom attribute values.
 
 ``` {.ebnf}
 dialect-attribute ::= '#' dialect-namespace '<' '"' attr-specific-data '"' '>'
-dialect-attribute ::= '#' alias-name pretty-dialect-attr-body?
+dialect-attribute ::= '#' dialect-namespace '.' pretty-dialect-attr-lead-ident
+                          pretty-dialect-attr-body?
 
+pretty-dialect-attr-lead-ident ::= '[A-Za-z][A-Za-z0-9._]*'
 pretty-dialect-attr-body ::= '<' pretty-dialect-attr-contents+ '>'
 pretty-dialect-attr-contents ::= pretty-dialect-attr-body
                               | '(' pretty-dialect-attr-contents+ ')'
@@ -1360,7 +1371,22 @@ symbol-ref-attribute ::= symbol-ref-id
 ```
 
 A symbol reference attribute is a literal attribute that represents a named
-reference to a given operation.
+reference to an operation that is nested within an operation with the
+`OpTrait::SymbolTable` trait. As such, this reference is given meaning by the
+nearest parent operation containing the `OpTrait::SymbolTable` trait.
+
+This attribute can only be held internally by
+[array attributes](#array-attribute) and
+[dictionary attributes](#dictionary-attribute)(including the top-level operation
+attribute dictionary), i.e. no other attribute kinds such as Locations or
+extended attribute kinds. If a reference to a symbol is necessary from outside
+of the symbol table that the symbol is defined in, a
+[string attribute](string-attribute) can be used to refer to the symbol name.
+
+**Rationale:** Given that MLIR models global accesses with symbol references, to
+enable efficient multi-threading, it becomes difficult to effectively reason
+about their uses. By restricting the places that can legally hold a symbol
+reference, we can always opaquely reason about a symbols usage characteristics.
 
 #### Type Attribute
 

@@ -24,6 +24,14 @@ func @verifyZeroArg() -> i32 {
   return %0 : i32
 }
 
+// CHECK-LABEL: verifyInterleavedOperandAttribute
+// CHECK-SAME:    %[[ARG0:.*]]: i32, %[[ARG1:.*]]: i32
+func @verifyInterleavedOperandAttribute(%arg0: i32, %arg1: i32) {
+  // CHECK: "test.interleaved_operand_attr2"(%[[ARG0]], %[[ARG1]]) {attr1 = 15 : i64, attr2 = 42 : i64}
+  "test.interleaved_operand_attr1"(%arg0, %arg1) {attr1 = 15, attr2 = 42} : (i32, i32) -> ()
+  return
+}
+
 // CHECK-LABEL: verifyBenefit
 func @verifyBenefit(%arg0 : i32) -> i32 {
   %0 = "test.op_d"(%arg0) : (i32) -> i32
@@ -42,6 +50,14 @@ func @verifyNativeCodeCall(%arg0: i32, %arg1: i32) -> (i32, i32) {
   %0 = "test.native_code_call1"(%arg0, %arg1) {choice = true, attr1 = 42, attr2 = 24} : (i32, i32) -> (i32)
   %1 = "test.native_code_call1"(%arg0, %arg1) {choice = false, attr1 = 42, attr2 = 24} : (i32, i32) -> (i32)
   return %0, %1: i32, i32
+}
+
+// CHECK-LABEL: verifyAuxiliaryNativeCodeCall
+func @verifyAuxiliaryNativeCodeCall(%arg0: i32) -> (i32) {
+  // CHECK: test.op_i
+  // CHECK: test.op_k
+  %0 = "test.native_code_call3"(%arg0) : (i32) -> (i32)
+  return %0 : i32
 }
 
 // CHECK-LABEL: verifyAllAttrConstraintOf
@@ -73,6 +89,13 @@ func @symbolBinding(%arg0: i32) -> i32 {
 
   // CHECK: return %2
   return %0: i32
+}
+
+// CHECK-LABEL: symbolBindingNoResult
+func @symbolBindingNoResult(%arg0: i32) {
+  // CHECK: test.symbol_binding_b
+  "test.symbol_binding_no_result"(%arg0) : (i32) -> ()
+  return
 }
 
 //===----------------------------------------------------------------------===//
@@ -153,7 +176,7 @@ func @verifyI64EnumAttr() -> i32 {
 }
 
 //===----------------------------------------------------------------------===//
-// Test ElelementsAttr
+// Test ElementsAttr
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: rewrite_i32elementsattr
@@ -287,8 +310,8 @@ func @replaceMixedVariadicOutputOp() -> (f32, i32, f32, i32, i32, i32, f32, i32,
   return %0, %1#0, %1#1, %1#2, %2#0, %2#1, %2#2, %2#3, %2#4 : f32, i32, f32, i32, i32, i32, f32, i32, i32
 }
 
-// CHECK-LABEL: @generateVaridicOutputOpInNestedPattern
-func @generateVaridicOutputOpInNestedPattern() -> (i32) {
+// CHECK-LABEL: @generateVariadicOutputOpInNestedPattern
+func @generateVariadicOutputOpInNestedPattern() -> (i32) {
   // CHECK: %[[cnt5:.*]]:5 = "test.mixed_variadic_out3"()
   // CHECK: %[[res:.*]] = "test.mixed_variadic_in3"(%[[cnt5]]#0, %[[cnt5]]#1, %[[cnt5]]#2, %[[cnt5]]#3, %[[cnt5]]#4)
   // CHECK: return %[[res]]

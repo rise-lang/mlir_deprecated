@@ -124,6 +124,19 @@ struct StdInlinerInterface : public DialectInlinerInterface {
 // StandardOpsDialect
 //===----------------------------------------------------------------------===//
 
+/// A custom unary operation printer that omits the "std." prefix from the
+/// operation names.
+static void printStandardUnaryOp(Operation *op, OpAsmPrinter &p) {
+  assert(op->getNumOperands() == 1 && "unary op should have one operand");
+  assert(op->getNumResults() == 1 && "unary op should have one result");
+
+  const int stdDotLen = StandardOpsDialect::getDialectNamespace().size() + 1;
+  p << op->getName().getStringRef().drop_front(stdDotLen) << ' '
+    << *op->getOperand(0);
+  p.printOptionalAttrDict(op->getAttrs());
+  p << " : " << op->getOperand(0)->getType();
+}
+
 /// A custom binary operation printer that omits the "std." prefix from the
 /// operation names.
 static void printStandardBinaryOp(Operation *op, OpAsmPrinter &p) {
@@ -139,7 +152,8 @@ static void printStandardBinaryOp(Operation *op, OpAsmPrinter &p) {
     return;
   }
 
-  p << op->getName().getStringRef().drop_front(strlen("std.")) << ' '
+  const int stdDotLen = StandardOpsDialect::getDialectNamespace().size() + 1;
+  p << op->getName().getStringRef().drop_front(stdDotLen) << ' '
     << *op->getOperand(0) << ", " << *op->getOperand(1);
   p.printOptionalAttrDict(op->getAttrs());
 
@@ -150,7 +164,8 @@ static void printStandardBinaryOp(Operation *op, OpAsmPrinter &p) {
 /// A custom cast operation printer that omits the "std." prefix from the
 /// operation names.
 static void printStandardCastOp(Operation *op, OpAsmPrinter &p) {
-  p << op->getName().getStringRef().drop_front(strlen("std.")) << ' '
+  const int stdDotLen = StandardOpsDialect::getDialectNamespace().size() + 1;
+  p << op->getName().getStringRef().drop_front(stdDotLen) << ' '
     << *op->getOperand(0) << " : " << op->getOperand(0)->getType() << " to "
     << op->getResult(0)->getType();
 }
@@ -440,13 +455,11 @@ struct SimplifyDeadAlloc : public OpRewritePattern<AllocOp> {
 
   PatternMatchResult matchAndRewrite(AllocOp alloc,
                                      PatternRewriter &rewriter) const override {
-    // Check if the alloc'ed value has any uses.
-    if (!alloc.use_empty())
-      return matchFailure();
-
-    // If it doesn't, we can eliminate it.
-    alloc.erase();
-    return matchSuccess();
+    if (alloc.use_empty()) {
+      rewriter.eraseOp(alloc);
+      return matchSuccess();
+    }
+    return matchFailure();
   }
 };
 } // end anonymous namespace.
@@ -640,11 +653,11 @@ static Type getCheckedI1SameShape(Builder *build, Type type) {
   if (type.isIntOrIndexOrFloat())
     return i1Type;
   if (auto tensorType = type.dyn_cast<RankedTensorType>())
-    return build->getTensorType(tensorType.getShape(), i1Type);
+    return RankedTensorType::get(tensorType.getShape(), i1Type);
   if (type.isa<UnrankedTensorType>())
-    return build->getTensorType(i1Type);
+    return UnrankedTensorType::get(i1Type);
   if (auto vectorType = type.dyn_cast<VectorType>())
-    return build->getVectorType(vectorType.getShape(), i1Type);
+    return VectorType::get(vectorType.getShape(), i1Type);
   return Type();
 }
 
@@ -1281,7 +1294,7 @@ struct SimplifyDeadDealloc : public OpRewritePattern<DeallocOp> {
         return matchFailure();
 
     // Erase the dealloc operation.
-    rewriter.replaceOp(dealloc, llvm::None);
+    rewriter.eraseOp(dealloc);
     return matchSuccess();
   }
 };
@@ -2215,24 +2228,7 @@ bool TensorCastOp::areCastCompatible(Type a, Type b) {
   if (aT.getElementType() != bT.getElementType())
     return false;
 
-  // If the either are unranked, then the cast is valid.
-  auto aRType = aT.dyn_cast<RankedTensorType>();
-  auto bRType = bT.dyn_cast<RankedTensorType>();
-  if (!aRType || !bRType)
-    return true;
-
-  // If they are both ranked, they have to have the same rank, and any specified
-  // dimensions must match.
-  if (aRType.getRank() != bRType.getRank())
-    return false;
-
-  for (unsigned i = 0, e = aRType.getRank(); i != e; ++i) {
-    int64_t aDim = aRType.getDimSize(i), bDim = bRType.getDimSize(i);
-    if (aDim != -1 && bDim != -1 && aDim != bDim)
-      return false;
-  }
-
-  return true;
+  return succeeded(verifyCompatibleShape(aT, bT));
 }
 
 OpFoldResult TensorCastOp::fold(ArrayRef<Attribute> operands) {
@@ -2245,7 +2241,7 @@ OpFoldResult TensorCastOp::fold(ArrayRef<Attribute> operands) {
 
 static Type getTensorTypeFromMemRefType(Builder &b, Type type) {
   if (auto memref = type.dyn_cast<MemRefType>())
-    return b.getTensorType(memref.getShape(), memref.getElementType());
+    return RankedTensorType::get(memref.getShape(), memref.getElementType());
   return b.getNoneType();
 }
 

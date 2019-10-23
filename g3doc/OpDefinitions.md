@@ -81,23 +81,23 @@ their semantics via a special [TableGen backend][TableGenBackend]:
 [`OpDefinitionsGen`][OpDefinitionsGen]. These constructs are defined in
 [`OpBase.td`][OpBase]. The main ones are
 
-* The `Op` class: It is the main construct for defining operations. All facts
-  regarding the operation is specified when specializing this class, with the
-  help of the following constructs.
-* The `Dialect` class: Operations belonging to one logical group are placed in
-  the same dialect. The `Dialect` class contains dialect-level information.
-* The `OpTrait` class hierarchy: They are used to specify special properties and
-  constraints of the operation, including whether the operation has side effect
-  or whether its output has the same shape as the input.
-* The `ins`/`outs` marker: These are two special makers builtin to the
-  `OpDefinitionsGen` backend. They lead the definitions of operands/attributes
-  and results respectively.
-* The `TypeConstraint` class hierarchy: They are used to specify the constraints
-  over operands or results. A notable subclass hierarchy is `Type`, which
-  stands for constraints for common C++ types.
-* The `AttrConstraint` class hierarchy: They are used to specify the constraints
-  over attributes. A notable subclass hierarchy is `Attr`, which stands for
-  constraints for attributes whose values are of common types.
+*   The `Op` class: It is the main construct for defining operations. All facts
+    regarding the operation are specified when specializing this class, with the
+    help of the following constructs.
+*   The `Dialect` class: Operations belonging to one logical group are placed in
+    the same dialect. The `Dialect` class contains dialect-level information.
+*   The `OpTrait` class hierarchy: They are used to specify special properties
+    and constraints of the operation, including whether the operation has side
+    effect or whether its output has the same shape as the input.
+*   The `ins`/`outs` marker: These are two special makers builtin to the
+    `OpDefinitionsGen` backend. They lead the definitions of operands/attributes
+    and results respectively.
+*   The `TypeConstraint` class hierarchy: They are used to specify the
+    constraints over operands or results. A notable subclass hierarchy is
+    `Type`, which stands for constraints for common C++ types.
+*   The `AttrConstraint` class hierarchy: They are used to specify the
+    constraints over attributes. A notable subclass hierarchy is `Attr`, which
+    stands for constraints for attributes whose values are of common types.
 
 An operation is defined by specializing the `Op` class with concrete contents
 for all the fields it requires. For example, `tf.AvgPool` is defined as
@@ -117,7 +117,7 @@ window in `value`.
     Confined<I64ArrayAttr, [ArrayMinCount<4>]>:$ksize,
     Confined<I64ArrayAttr, [ArrayMinCount<4>]>:$strides,
     TF_AnyStrAttrOf<["SAME", "VALID"]>:$padding,
-    DefaultValuedAttr<TF_ConvnetDataFormatAttr, "NHWC">:$data_format
+    DefaultValuedAttr<TF_ConvertDataFormatAttr, "NHWC">:$data_format
   );
 
   let results = (outs
@@ -376,7 +376,7 @@ def MyInterface : OpInterface<"MyInterface"> {
 
 // Interfaces can optionally be wrapped inside DeclareOpInterfaceMethods. This
 // would result in autogenerating declarations for members `foo`, `bar` and
-// `fooStatic`. Methods without bodies are not declared inside the op
+// `fooStatic`. Methods with bodies are not declared inside the op
 // declaration but instead handled by the op interface trait directly.
 def OpWithInferTypeInterfaceOp : Op<...
     [DeclareOpInterfaceMethods<MyInterface>]> { ... }

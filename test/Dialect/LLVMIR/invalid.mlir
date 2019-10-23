@@ -162,7 +162,7 @@ func @insertvalue_non_array_position() {
 
 // -----
 
-func @insertvlaue_non_integer_position() {
+func @insertvalue_non_integer_position() {
   // expected-error@+1 {{expected an array of integer literals}}
   llvm.insertvalue %a, %b[0.0] : !llvm<"{i32}">
 }
@@ -206,7 +206,7 @@ func @extractvalue_non_array_position() {
 
 // -----
 
-func @extractvlaue_non_integer_position() {
+func @extractvalue_non_integer_position() {
   // expected-error@+1 {{expected an array of integer literals}}
   llvm.extractvalue %b[0.0] : !llvm<"{i32}">
 }
@@ -254,4 +254,35 @@ func @invalid_vector_type_2(%arg0: !llvm<"<4 x float>">, %arg1: !llvm.i32, %arg2
 func @invalid_vector_type_3(%arg0: !llvm<"<4 x float>">, %arg1: !llvm.i32, %arg2: !llvm.float) {
   // expected-error@+1 {{expected LLVM IR dialect vector type for operand #1}}
   %0 = llvm.shufflevector %arg2, %arg2 [0 : i32, 0 : i32, 0 : i32, 0 : i32, 7 : i32] : !llvm.float, !llvm.float
+}
+
+// -----
+
+func @null_non_llvm_type() {
+  // expected-error@+1 {{expected LLVM IR pointer type}}
+  llvm.mlir.null : !llvm.i32
+}
+
+// -----
+
+// CHECK-LABEL: @nvvm_invalid_shfl_pred_1
+func @nvvm_invalid_shfl_pred_1(%arg0 : !llvm.i32, %arg1 : !llvm.i32, %arg2 : !llvm.i32, %arg3 : !llvm.i32) {
+  // expected-error@+1 {{expected return type !llvm<"{ ?, i1 }">}}
+  %0 = nvvm.shfl.sync.bfly %arg0, %arg3, %arg1, %arg2 {return_value_and_is_valid} : !llvm.i32
+}
+
+// -----
+
+// CHECK-LABEL: @nvvm_invalid_shfl_pred_2
+func @nvvm_invalid_shfl_pred_2(%arg0 : !llvm.i32, %arg1 : !llvm.i32, %arg2 : !llvm.i32, %arg3 : !llvm.i32) {
+  // expected-error@+1 {{expected return type !llvm<"{ ?, i1 }">}}
+  %0 = nvvm.shfl.sync.bfly %arg0, %arg3, %arg1, %arg2 {return_value_and_is_valid} : !llvm<"{ i32 }">
+}
+
+// -----
+
+// CHECK-LABEL: @nvvm_invalid_shfl_pred_3
+func @nvvm_invalid_shfl_pred_3(%arg0 : !llvm.i32, %arg1 : !llvm.i32, %arg2 : !llvm.i32, %arg3 : !llvm.i32) {
+  // expected-error@+1 {{expected return type !llvm<"{ ?, i1 }">}}
+  %0 = nvvm.shfl.sync.bfly %arg0, %arg3, %arg1, %arg2 {return_value_and_is_valid} : !llvm<"{ i32, i32 }">
 }

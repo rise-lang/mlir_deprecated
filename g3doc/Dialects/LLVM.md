@@ -50,6 +50,30 @@ specific LLVM IR type.
 All operations in the LLVM IR dialect have a custom form in MLIR. The mnemonic
 of an operation is that used in LLVM IR prefixed with "`llvm.`".
 
+### LLVM functions
+
+MLIR functions are defined by an operation that is not built into the IR itself.
+The LLVM IR dialect provides an `llvm.func` operation to define functions
+compatible with LLVM IR. These functions have wrapped LLVM IR function type but
+use MLIR syntax to express it. They are required to have exactly one result
+type. LLVM function operation is intended to capture additional properties of
+LLVM functions, such as linkage and calling convention, that may be modeled
+differently by the built-in MLIR function.
+
+```mlir {.mlir}
+// The type of @bar is !llvm<"i64 (i64)">
+llvm.func @bar(%arg0: !llvm.i64) -> !llvm.i64 {
+  llvm.return %arg0 : !llvm.i64
+}
+
+// Type type of @foo is !llvm<"void (i64)">
+// !llvm.void type is omitted
+llvm.func @foo(%arg0: !llvm.i64) {
+  llvm.return
+}
+
+```
+
 ### LLVM IR operations
 
 The following operations are currently supported. The semantics of these
@@ -331,6 +355,23 @@ llvm.mlir.global @string("abc") : !llvm<"[3 x i8]">
 
 // For strings globals, the trailing type may be omitted.
 llvm.mlir.global constant @no_trailing_type("foo bar")
+```
+
+#### `llvm.mlir.null`
+
+Unlike LLVM IR, MLIR does not have first-class null pointers. They must be
+explicitly created as SSA values using `llvm.mlir.null`. This operation has
+operands or attributes, and returns a null value of a wrapped LLVM IR pointer
+type.
+
+Examples:
+
+```mlir {.mlir}
+// Null pointer to i8 value.
+%0 = llvm.mlir.null : !llvm<"i8*">
+
+// Null pointer to a function with signature void() value.
+%1 = llvm.mlir.null : !llvm<"void()*">
 ```
 
 #### `llvm.mlir.undef`
