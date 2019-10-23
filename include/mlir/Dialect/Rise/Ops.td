@@ -163,7 +163,7 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
     let parser = [{ return parse$cppClass(parser, result); }];
 
     let builders = [OpBuilder<
-        "Builder *b, OperationState *result", [{ build(b, result, llvm::None); }]
+        "Builder *b, OperationState &result", [{ build(b, result, llvm::None); }]
         >];
 }
 //def ForOp : Loop_Op<"for",
