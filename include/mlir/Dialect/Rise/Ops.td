@@ -60,7 +60,9 @@ def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
 
 def IntType : Type<CPred<"$_self.isa<Int>()">, "int type">;
 def FloatType : Type<CPred<"$_self.isa<Float>()">, "float type">;
-def DataType : Type<Or<[IntType.predicate, FloatType.predicate]>>;
+def ArrayType : Type<CPred<"$_self.isa<ArrayType>()">, "array type">;
+def DataType : Type<Or<[IntType.predicate, FloatType.predicate, ArrayType.predicate]>>;
+
 
 def NatOrDataType : Type<Or<[NatType.predicate, DataType.predicate]>>;
 
@@ -70,7 +72,6 @@ def RiseType : Type<Or<[FunType.predicate, DataTypeWrapper.predicate]>>;
 
 
 def LambdaType : Type<CPred<"$_self.isa<LambdaType>()">, "lambda type">;
-def ArrayType : Type<CPred<"$_self.isa<ArrayType>()">, "array type">;
 //def KindType : Type<CPred<"$_self.isa<Kind>()">, "kind type">;
 def SubclassOfKindType : AnyTypeOf<[NatType, LambdaType], "subclass of kind type">;
 //TODO: add other Types
@@ -102,14 +103,14 @@ def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
 //    let hasFolder = 1;
 }
 
-def ArrayOp : Rise_Op<"array", [NoSideEffect]> {
-    let summary = "array";
-
-    let arguments = (ins APIntAttr:$size, RiseTypeAttr:$elementType);
-    let results = (outs ArrayType);
-
-    let parser = [{ return parse$cppClass(parser, result); }];
-}
+//def ArrayOp : Rise_Op<"array", [NoSideEffect]> {
+//    let summary = "array";
+//
+//    let arguments = (ins APIntAttr:$size, RiseTypeAttr:$elementType);
+//    let results = (outs ArrayType);
+//
+//    let parser = [{ return parse$cppClass(parser, result); }];
+//}
 
 
 def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {

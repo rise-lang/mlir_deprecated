@@ -26,13 +26,12 @@ namespace rise {
 // RiseTypeAttr
 //===----------------------------------------------------------------------===//
 
-RiseTypeAttr RiseTypeAttr::get(mlir::Type value) {
-    return Base::get(value.getContext(), RiseAttributeKind::RISE_TYPE_ATTR, value);
+RiseTypeAttr RiseTypeAttr::get(MLIRContext *context, mlir::Type type, std::string value) {
+    return Base::get(context, RiseAttributeKind::RISE_TYPE_ATTR, type, value);
 }
+mlir::Type RiseTypeAttr::getType() const { return getImpl()->type; }
 
-mlir::Type RiseTypeAttr::getValue() const { return getImpl()->value; }
-
-
+std::string RiseTypeAttr::getValue() const { return getImpl()->value; }
 
 }
 }

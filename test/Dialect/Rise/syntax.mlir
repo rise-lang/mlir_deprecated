@@ -1,15 +1,14 @@
 module {
   func @rise_id() {
     ^id:
-        %42 = rise.literal 42 : !rise.int
+        %42 = rise.literal #rise.int<42>
+        %array = rise.literal #rise.array<2, !rise.int, [1,2]>
+        %nestedArray = rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
+
         %id = rise.lambda %i : !rise.int -> !rise.int {
             rise.return %i
         }
         %result = rise.apply %id : !rise.fun<!rise.wrapped<int>, !rise.wrapped<int>>, %42
-
-//        %xs = rise.array 5 !rise.nat
-//        %arrayOfArrays = rise.array 200 !rise.array<2, array<1, array<5, float>>>
-
 
         "rise.return"() : () -> ()
 //    "rise.return"(%id) : (!rise.fun<!rise.int, !rise.int>) -> ()

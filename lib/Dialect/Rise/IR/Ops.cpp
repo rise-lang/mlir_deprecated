@@ -93,7 +93,28 @@ ParseResult parseLambdaOp(OpAsmParser &parser, OperationState &result) {
 // ParseLiteralOp
 //===----------------------------------------------------------------------===//
 ParseResult parseLiteralOp(OpAsmParser &parser, OperationState &result) {
+    ///Format:
+    ///         rise.literal #rise.int<42>
+    ///         rise.literal #rise.array<2, rise.int, [1,2]>
+    ///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
+
     auto &builder = parser.getBuilder();
+
+
+//    if (parser.parseType(literalType))
+//        failure();
+
+//    if (parser.parseLParen())
+//        failure();
+
+    RiseTypeAttr attr;
+    if (parser.parseAttribute(attr, "literalValue",result.attributes))
+        return failure();
+
+    result.addTypes(attr.getType());
+
+    return success();
+
 
     if (succeeded(parser.parseOptionalLSquare())) {
         //Houston, we have an array
@@ -146,37 +167,38 @@ ParseResult parseLiteralOp(OpAsmParser &parser, OperationState &result) {
 //===----------------------------------------------------------------------===//
 // ParseArrayOp
 //===----------------------------------------------------------------------===//
-ParseResult parseArrayOp(OpAsmParser &parser, OperationState &result) {
-    auto &builder = parser.getBuilder();
-
-    IntegerAttr sizeAttr;
-    RiseTypeAttr elementTypeAttr;
-
-    if (parser.parseAttribute(sizeAttr,
-            IntegerType::get(16, parser.getBuilder().getContext()),
-            "size",result.attributes))
-        return failure();
-
-//    if (parser.parseAttribute(elementTypeAttr, Type(),
-//            "elementType", result.attributes))
-//        return failure();
-    ///TODO: this should really be done using parseAttribute, but for some reason the method parseAttribute of this dialect is not called
-    mlir::Type type;
-    if (parser.parseType(type))
-        failure();
-
-    elementTypeAttr = RiseTypeAttr::get(type);
-    result.addAttribute("elementType", elementTypeAttr);
-
-    //TODO change hardcode of Nat
-    //somewhere the nat elementType gets changed to a float
-    auto arrayType = ArrayType::get(parser.getBuilder().getContext(),
-            sizeAttr.getInt(), type);
-
-    result.addTypes(arrayType);
-
-    return success();
-}
+///// to be replaced by literalop
+//ParseResult parseArrayOp(OpAsmParser &parser, OperationState &result) {
+//    auto &builder = parser.getBuilder();
+//
+////    IntegerAttr sizeAttr;
+////    RiseTypeAttr elementTypeAttr;
+////
+////    if (parser.parseAttribute(sizeAttr,
+////            IntegerType::get(16, parser.getBuilder().getContext()),
+////            "size",result.attributes))
+////        return failure();
+////
+//////    if (parser.parseAttribute(elementTypeAttr, Type(),
+//////            "elementType", result.attributes))
+//////        return failure();
+////    ///TODO: this should really be done using parseAttribute, but for some reason the method parseAttribute of this dialect is not called
+////    mlir::Type type;
+////    if (parser.parseType(type))
+////        failure();
+////
+////    elementTypeAttr = RiseTypeAttr::get(type);
+////    result.addAttribute("elementType", elementTypeAttr);
+////
+////    //TODO change hardcode of Nat
+////    //somewhere the nat elementType gets changed to a float
+////    auto arrayType = ArrayType::get(parser.getBuilder().getContext(),
+////            sizeAttr.getInt(), type);
+////
+////    result.addTypes(arrayType);
+//
+//    return success();
+//}
 
 
 //===----------------------------------------------------------------------===//

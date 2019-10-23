@@ -15,21 +15,23 @@ namespace rise {
 namespace detail {
 /// An attribute representing a reference to a Rise type.
 struct RiseTypeAttributeStorage : public mlir::AttributeStorage {
-    using KeyTy = mlir::Type;
+    //This is intentionally a StringRef, hashing does not work with std::string for some reason
+    using KeyTy = std::pair<mlir::Type, llvm::StringRef>;
 
-    RiseTypeAttributeStorage(mlir::Type value) : value(value) {}
+    RiseTypeAttributeStorage(mlir::Type type, std::string value) : type(type), value(value) {}
 
     /// Key equality function.
-    bool operator==(const KeyTy &key) const { return key == value; }
+    bool operator==(const KeyTy &key) const { return key == KeyTy(type, value); }
 
     /// Construct a new storage instance.
     static RiseTypeAttributeStorage *construct(mlir::AttributeStorageAllocator &allocator,
                                                KeyTy key) {
         return new(allocator.allocate<RiseTypeAttributeStorage>())
-                RiseTypeAttributeStorage(key);
+                RiseTypeAttributeStorage(key.first, key.second);
     }
 
-    mlir::Type value;
+    mlir::Type type;
+    std::string value;
 };
 
 }

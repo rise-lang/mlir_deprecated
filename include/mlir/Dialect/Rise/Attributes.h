@@ -31,9 +31,10 @@ public:
     using Base::Base;
 //    using ValueType = Type;
 
-    static RiseTypeAttr get(mlir::Type value);
+    static RiseTypeAttr get(MLIRContext *context, mlir::Type type, std::string value);
 
-    mlir::Type getValue() const;
+    std::string getValue() const;
+    mlir::Type getType() const;
 
     /// Methods for support type inquiry through isa, cast, and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseAttributeKind::RISE_TYPE_ATTR; }
