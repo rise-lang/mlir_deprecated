@@ -51,37 +51,41 @@ For example, `vector<4 x f32>` converts to `!llvm.type<"<4 x float>">` and
 ### Memref Types
 
 Memref types in MLIR have both static and dynamic information associated with
-them. The dynamic information comprises the buffer pointer as well as sizes of
-any dynamically sized dimensions. Memref types are converted into either LLVM IR
-pointer types if they are fully statically shaped; or to LLVM IR structure types
-if they contain dynamic sizes. In the latter case, the first element of the
-structure is a pointer to the converted (using these rules) memref element type,
-followed by as many elements as the memref has dynamic sizes. The type of each
-of these size arguments will be the LLVM type that results from converting the
-MLIR `index` type. Zero-dimensional memrefs are treated as pointers to the
-elemental type.
+them. The dynamic information comprises the buffer pointer as well as sizes and
+strides of any dynamically sized dimensions. Memref types are normalized and
+converted to a descriptor that is only dependent on the rank of the memref. The
+descriptor contains:
+
+1.  the pointer to the data buffer, followed by
+2.  a lowered `index`-type integer containing the distance between the beginning
+    of the buffer and the first element to be accessed through the memref,
+    followed by
+3.  an array containing as many `index`-type integers as the rank of the memref:
+    the array represents the size, in number of elements, of the memref along
+    the given dimension. For constant MemRef dimensions, the corresponding size
+    entry is a constant whose runtime value must match the static value,
+    followed by
+4.  a second array containing as many 64-bit integers as the rank of the MemRef:
+    the second array represents the "stride" (in tensor abstraction sense), i.e.
+    the number of consecutive elements of the underlying buffer.
+
+For constant memref dimensions, the corresponding size entry is a constant whose
+runtime value matches the static value. This normalization serves as an ABI for
+the memref type to interoperate with externally linked functions. In the
+particular case of rank `0` memrefs, the size and stride arrays are omitted,
+resulting in a struct containing a pointer + offset.
 
 Examples:
 
 ```mlir {.mlir}
-// All of the following are converted to just a pointer type because
-// of fully static sizes.
-memref<f32>
-memref<1 x f32>
-memref<10x42x42x43x123 x f32>
-// resulting type
-!llvm.type<"float*">
-
-// All of the following are converted to a three-element structure
-memref<?x? x f32>
-memref<42x?x10x35x1x? x f32>
-// resulting type assuming 64-bit pointers
-!llvm.type<"{float*, i64, i64}">
+memref<f32> -> !llvm.type<"{ float*, i64 }">
+memref<1 x f32> -> !llvm.type<"{ float*, i64, [1 x i64], [1 x i64] }">
+memref<? x f32> -> !llvm.type<"{ float*, i64, [1 x i64], [1 x i64] }">
+memref<10x42x42x43x123 x f32> -> !llvm.type<"{ float*, i64, [5 x i64], [5 x i64] }">
+memref<10x?x42x?x123 x f32> -> !llvm.type<"{ float*, i64, [5 x i64], [5 x i64]  }">
 
 // Memref types can have vectors as element types
-memref<1x? x vector<4xf32>>
-// which get converted as well
-!llvm.type<"{<4 x float>*, i64}">
+memref<1x? x vector<4xf32>> -> !llvm.type<"{ <4 x float>*, i64, [1 x i64], [1 x i64] }">
 ```
 
 ### Function Types
@@ -133,49 +137,27 @@ Examples:
 
 ### Function Signature Conversion
 
-MLIR function type is built into the representation, even the functions in
-dialects including a first-class function type must have the built-in MLIR
-function type. During the conversion to LLVM IR, function signatures are
-converted as follows:
-
--   the outer type remains the built-in MLIR function;
--   function arguments are converted individually following these rules;
--   function results:
-    -   zero-result functions remain zero-result;
-    -   single-result functions have their result type converted according to
-        these rules;
-    -   multi-result functions have a single result type of the wrapped LLVM IR
-        structure type with elements corresponding to the converted original
-        results.
-
-Rationale: function definitions remain analyzable within MLIR without having to
-abstract away the function type. In order to remain consistent with the regular
-MLIR functions, we do not introduce a `void` result type since we cannot create
-a value of `void` type that MLIR passes might expect to be returned from a
-function.
+LLVM IR functions are defined by a custom operation. The function itself has a
+wrapped LLVM IR function type converted as described above. The function
+definition operation uses MLIR syntax.
 
 Examples:
 
 ```mlir {.mlir}
 // zero-ary function type with no results.
 func @foo() -> ()
-// remains as is
-func @foo() -> ()
+// gets LLVM type void().
+llvm.func @foo() -> ()
 
-// unary function with one result
+// function with one result
 func @bar(i32) -> (i64)
-// has its argument and result type converted
-func @bar(!llvm.type<"i32">) -> !llvm.type<"i64">
+// gets converted to LLVM type i64(i32).
+func @bar(!llvm.i32) -> !llvm.i64
 
-// binary function with one result
-func @baz(i32, f32) -> (i64)
-// has its arguments handled separately
-func @baz(!llvm.type<"i32">, !llvm.type<"float">) -> !llvm.type<"i64">
-
-// binary function with two results
+// function with two results
 func @qux(i32, f32) -> (i64, f64)
 // has its result aggregated into a structure type
-func @qux(!llvm.type<"i32">, !llvm.type<"float">) -> !llvm.type<"{i64, double}">
+func @qux(!llvm.i32, !llvm.float) -> !llvm.type<"{i64, double}">
 
 // function-typed arguments or results in higher-order functions
 func @quux(() -> ()) -> (() -> ())

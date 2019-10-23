@@ -27,9 +27,9 @@ func @func_with_ops(f32) {
   return
 }
 
-// CHECK-LABEL: func @standard_instrs(%arg0: tensor<4x4x?xf32>, %arg1: f32, %arg2: i32, %arg3: index, %arg4: i64) {
-func @standard_instrs(tensor<4x4x?xf32>, f32, i32, index, i64) {
-^bb42(%t: tensor<4x4x?xf32>, %f: f32, %i: i32, %idx : index, %j: i64):
+// CHECK-LABEL: func @standard_instrs(%arg0: tensor<4x4x?xf32>, %arg1: f32, %arg2: i32, %arg3: index, %arg4: i64, %arg5: f16) {
+func @standard_instrs(tensor<4x4x?xf32>, f32, i32, index, i64, f16) {
+^bb42(%t: tensor<4x4x?xf32>, %f: f32, %i: i32, %idx : index, %j: i64, %half: f16):
   // CHECK: %0 = dim %arg0, 2 : tensor<4x4x?xf32>
   %a = "std.dim"(%t){index = 2} : (tensor<4x4x?xf32>) -> index
 
@@ -309,6 +309,56 @@ func @standard_instrs(tensor<4x4x?xf32>, f32, i32, index, i64) {
   // CHECK: = sitofp {{.*}} : i64 to f64
   %81 = sitofp %j : i64 to f64
 
+  // CHECK: = sexti %arg2 : i32 to i64
+  %82 = "std.sexti"(%i) : (i32) -> i64
+
+  // CHECK: = sexti %arg2 : i32 to i64
+  %83 = sexti %i : i32 to i64
+
+  // CHECK: %{{[0-9]+}} = sexti %cst_5 : vector<42xi32>
+  %84 = sexti %vci32 : vector<42 x i32> to vector<42 x i64>
+
+  // CHECK: %{{[0-9]+}} = sexti %cst_4 : tensor<42xi32>
+  %85 = sexti %tci32 : tensor<42 x i32> to tensor<42 x i64>
+
+  // CHECK: = zexti %arg2 : i32 to i64
+  %86 = "std.zexti"(%i) : (i32) -> i64
+
+  // CHECK: = zexti %arg2 : i32 to i64
+  %87 = zexti %i : i32 to i64
+
+  // CHECK: %{{[0-9]+}} = zexti %cst_5 : vector<42xi32>
+  %88 = zexti %vci32 : vector<42 x i32> to vector<42 x i64>
+
+  // CHECK: %{{[0-9]+}} = zexti %cst_4 : tensor<42xi32>
+  %89 = zexti %tci32 : tensor<42 x i32> to tensor<42 x i64>
+
+  // CHECK: = trunci %arg2 : i32 to i16
+  %90 = "std.trunci"(%i) : (i32) -> i16
+
+  // CHECK: = trunci %arg2 : i32 to i16
+  %91 = trunci %i : i32 to i16
+
+  // CHECK: %{{[0-9]+}} = trunci %cst_5 : vector<42xi32>
+  %92 = trunci %vci32 : vector<42 x i32> to vector<42 x i16>
+
+  // CHECK: %{{[0-9]+}} = trunci %cst_4 : tensor<42xi32>
+  %93 = trunci %tci32 : tensor<42 x i32> to tensor<42 x i16>
+
+  // CHECK: = fpext {{.*}} : f16 to f32
+  %94 = fpext %half : f16 to f32
+
+  // CHECK: = fptrunc {{.*}} : f32 to f16
+  %95 = fptrunc %f : f32 to f16
+
+  // CHECK: %{{[0-9]+}} = exp %arg1 : f32
+  %96 = "std.exp"(%f) : (f32) -> f32
+
+  // CHECK: %{{[0-9]+}} = exp %arg1 : f32
+  %97 = exp %f : f32
+
+  // CHECK: %{{[0-9]+}} = exp %arg0 : tensor<4x4x?xf32>
+  %98 = exp %t : tensor<4x4x?xf32>
   return
 }
 
@@ -426,11 +476,22 @@ func @memref_cast(%arg0: memref<4xf32>, %arg1 : memref<?xf32>) {
 func @test_dimop(%arg0: tensor<4x4x?xf32>) {
   // CHECK: %0 = dim %arg0, 2 : tensor<4x4x?xf32>
   %0 = dim %arg0, 2 : tensor<4x4x?xf32>
-  // use dim as an affine_int to ensure type correctness
+  // use dim as an index to ensure type correctness
   %1 = affine.apply (d0) -> (d0)(%0)
   return
 }
 
+// CHECK-LABEL: func @test_splat_op
+// CHECK-SAME: [[S:%arg[0-9]+]]: f32
+func @test_splat_op(%s : f32) {
+  %v = splat %s : vector<8xf32>
+  // CHECK: splat [[S]] : vector<8xf32>
+  %t = splat %s : tensor<8xf32>
+  // CHECK: splat [[S]] : tensor<8xf32>
+  %u = "std.splat"(%s) : (f32) -> vector<4xf32>
+  // CHECK: splat [[S]] : vector<4xf32>
+  return
+}
 
 // CHECK-LABEL: func @test_vector.transfer_ops(%arg0
 func @test_vector.transfer_ops(%arg0: memref<?x?xf32>) {

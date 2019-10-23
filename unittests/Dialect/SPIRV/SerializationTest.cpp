@@ -1,4 +1,4 @@
-//===- SerializationTest.cpp - SPIR-V Seserialization Tests -------------===//
+//===- SerializationTest.cpp - SPIR-V Serialization Tests -----------------===//
 //
 // Copyright 2019 The MLIR Authors.
 //
@@ -55,7 +55,7 @@ protected:
     state.addAttribute("memory_model",
                        builder.getI32IntegerAttr(
                            static_cast<uint32_t>(spirv::MemoryModel::GLSL450)));
-    spirv::ModuleOp::build(&builder, &state);
+    spirv::ModuleOp::build(&builder, state);
     module = cast<spirv::ModuleOp>(Operation::create(state));
   }
 
@@ -71,7 +71,7 @@ protected:
     OpBuilder opBuilder(module.body());
     auto ptrType = spirv::PointerType::get(type, spirv::StorageClass::Uniform);
     opBuilder.create<spirv::GlobalVariableOp>(
-        UnknownLoc::get(&context), opBuilder.getTypeAttr(ptrType),
+        UnknownLoc::get(&context), TypeAttr::get(ptrType),
         opBuilder.getStringAttr(name), nullptr);
   }
 

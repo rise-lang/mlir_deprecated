@@ -22,10 +22,12 @@ func @permute() {
 // CHECK-NEXT: dealloc [[MEM]]
 // CHECK-NEXT: return
 
-// CHECK-LABEL: func @shift()
-func @shift() {
-  // CHECK-NOT:  memref<64xf32, (d0) -> (d0 + 1)>
+// CHECK-LABEL: func @shift
+func @shift(%idx : index) {
+  // CHECK-NEXT: alloc() : memref<65xf32>
   %A = alloc() : memref<64xf32, (d0) -> (d0 + 1)>
+  // CHECK-NEXT: affine.load %{{.*}}[symbol(%arg0) + 1] : memref<65xf32>
+  affine.load %A[%idx] : memref<64xf32, (d0) -> (d0 + 1)>
   affine.for %i = 0 to 64 {
     affine.load %A[%i] : memref<64xf32, (d0) -> (d0 + 1)>
     // CHECK: %{{.*}} = affine.load %{{.*}}[%arg{{.*}} + 1] : memref<65xf32>
@@ -59,10 +61,12 @@ func @invalid_map() {
 }
 
 // A tiled layout.
-// CHECK-LABEL: func @data_tiling()
-func @data_tiling() {
+// CHECK-LABEL: func @data_tiling
+func @data_tiling(%idx : index) {
+  // CHECK: alloc() : memref<8x32x8x16xf32>
   %A = alloc() : memref<64x512xf32, (d0, d1) -> (d0 floordiv 8, d1 floordiv 16, d0 mod 8, d1 mod 16)>
-  // CHECK: %{{.*}} = alloc() : memref<8x32x8x16xf32>
+  // CHECK: affine.load %{{.*}}[symbol(%arg0) floordiv 8, symbol(%arg0) floordiv 16, symbol(%arg0) mod 8, symbol(%arg0) mod 16]
+  affine.load %A[%idx, %idx] : memref<64x512xf32, (d0, d1) -> (d0 floordiv 8, d1 floordiv 16, d0 mod 8, d1 mod 16)>
   return
 }
 
@@ -91,6 +95,21 @@ func @strided_cumulative() {
     affine.for %j = 0 to 5 {
       // CHECK: affine.load %{{.*}}[%[[IV0]] * 3 + %[[IV1]] * 17] : memref<72xf32>
       affine.load %A[%i, %j]  : memref<2x5xf32, (d0, d1) -> (3*d0 + 17*d1)>
+    }
+  }
+  return
+}
+
+// Symbolic operand for alloc, although unused. Tests replaceAllMemRefUsesWith
+// when the index remap has symbols.
+// CHECK-LABEL: func @symbolic_operands
+func @symbolic_operands(%s : index) {
+  // CHECK: alloc() : memref<100xf32>
+  %A = alloc()[%s] : memref<10x10xf32, (d0,d1)[s0] -> (10*d0 + d1)>
+  affine.for %i = 0 to 10 {
+    affine.for %j = 0 to 10 {
+      // CHECK: affine.load %{{.*}}[%{{.*}} * 10 + %{{.*}}] : memref<100xf32>
+      affine.load %A[%i, %j] : memref<10x10xf32, (d0,d1)[s0] -> (10*d0 + d1)>
     }
   }
   return

@@ -20,7 +20,7 @@ format and to facilitate transformations. Therefore, it should
 
 *   Stay as the same semantic level and try to be a mechanical 1:1 mapping;
 *   But deviate representationally if possible with MLIR mechanisms.
-*   Be straightforward to serialize into and deserialize drom the SPIR-V binary
+*   Be straightforward to serialize into and deserialize from the SPIR-V binary
     format.
 
 ## Conventions
@@ -55,10 +55,10 @@ instructions are represented in the SPIR-V dialect. Notably,
 *   Requirements for capabilities, extensions, extended instruction sets,
     addressing model, and memory model is conveyed using `spv.module`
     attributes. This is considered better because these information are for the
-    exexcution environment. It's eaiser to probe them if on the module op
+    execution environment. It's easier to probe them if on the module op
     itself.
-*   Annotations/decoration instrutions are "folded" into the instructions they
-    decorate and represented as attributes on those ops. This elimiates
+*   Annotations/decoration instructions are "folded" into the instructions they
+    decorate and represented as attributes on those ops. This eliminates
     potential forward references of SSA values, improves IR readability, and
     makes querying the annotations more direct.
 *   Types are represented using MLIR standard types and SPIR-V dialect specific
@@ -179,8 +179,9 @@ For example,
 This corresponds to SPIR-V [struct type][StructType]. Its syntax is
 
 ``` {.ebnf}
-struct-type ::= `!spv.struct<` spirv-type (` [` integer-literal `]` )?
-                (`, ` spirv-type ( ` [` integer-literal `] ` )? )* `>`
+struct-member-decoration ::= integer-literal? spirv-decoration*
+struct-type ::= `!spv.struct<` spirv-type (`[` struct-member-decoration `]`)?
+                     (`, ` spirv-type (`[` struct-member-decoration `]`)?
 ```
 
 For Example,
@@ -211,15 +212,92 @@ control flow construct. With this approach, it's easier to discover all blocks
 belonging to a structured control flow construct. It is also more idiomatic to
 MLIR system.
 
-We introduce a a `spv.loop` op for structured loops. The merge targets are the
-next ops following them. Inside their regions, a special terminator,
-`spv._merge` is introduced for branching to the merge target.
+We introduce a `spv.selection` and `spv.loop` op for structured selections and
+loops, respectively. The merge targets are the next ops following them. Inside
+their regions, a special terminator, `spv._merge` is introduced for branching to
+the merge target.
+
+### Selection
+
+`spv.selection` defines a selection construct. It contains one region. The
+region should contain at least two blocks: one selection header block and one
+merge block.
+
+*   The selection header block should be the first block. It should contain the
+    `spv.BranchConditional` or `spv.Switch` op.
+*   The merge block should be the last block. The merge block should only
+    contain a `spv._merge` op. Any block can branch to the merge block for early
+    exit.
+
+```
+               +--------------+
+               | header block |                 (may have multiple outgoing branches)
+               +--------------+
+                    / | \
+                     ...
+
+
+   +---------+   +---------+   +---------+
+   | case #0 |   | case #1 |   | case #2 |  ... (may have branches between each other)
+   +---------+   +---------+   +---------+
+
+
+                     ...
+                    \ | /
+                      v
+               +-------------+
+               | merge block |                  (may have multiple incoming branches)
+               +-------------+
+```
+
+For example, for the given function
+
+```c++
+void loop(bool cond) {
+  int x = 0;
+  if (cond) {
+    x = 1;
+  } else {
+    x = 2;
+  }
+  // ...
+}
+```
+
+It will be represented as
+
+```mlir
+func @selection(%cond: i1) -> () {
+  %zero = spv.constant 0: i32
+  %one = spv.constant 1: i32
+  %two = spv.constant 2: i32
+  %x = spv.Variable init(%zero) : !spv.ptr<i32, Function>
+
+  spv.selection {
+    spv.BranchConditional %cond, ^then, ^else
+
+  ^then:
+    spv.Store "Function" %x, %one : i32
+    spv.Branch ^merge
+
+  ^else:
+    spv.Store "Function" %x, %two : i32
+    spv.Branch ^merge
+
+  ^merge:
+    spv._merge
+  }
+
+  // ...
+}
+
+```
 
 ### Loop
 
-`spv.loop` defines a loop construct. It contains one region. The `spv.loop`
-region should contain at least four blocks: one entry block, one loop header
-block, one loop continue block, one merge block.
+`spv.loop` defines a loop construct. It contains one region. The region should
+contain at least four blocks: one entry block, one loop header block, one loop
+continue block, one merge block.
 
 *   The entry block should be the first block and it should jump to the loop
     header block, which is the second block.
@@ -251,7 +329,7 @@ block, one loop continue block, one merge block.
           ...
          \ | /
            v
-    +-------------+           (may have mulitple incoming branches)
+    +-------------+           (may have multiple incoming branches)
     | merge block |
     +-------------+
 ```

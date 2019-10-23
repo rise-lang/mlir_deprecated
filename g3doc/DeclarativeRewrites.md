@@ -25,14 +25,14 @@ benefits, including but not limited to:
 *   **Being declarative**: The pattern creator just needs to state the rewrite
     pattern declaratively, without worrying about the concrete C++ methods to
     call.
-*   **Removing boilerplate and showing the very essense the the rewrite**:
+*   **Removing boilerplate and showing the very essence of the rewrite**:
     `mlir::RewritePattern` is already good at hiding boilerplate for defining a
     rewrite rule. But we still need to write the class and function structures
     required by the C++ programming language, inspect ops for matching, and call
     op `build()` methods for constructing. These statements are typically quite
     simple and similar, so they can be further condensed with auto-generation.
     Because we reduce the boilerplate to the bare minimum, the declarative
-    rewrite rule will just contain the very essense of the rewrite. This makes
+    rewrite rule will just contain the very essence of the rewrite. This makes
     it very easy to understand the pattern.
 
 ## Strengths and Limitations
@@ -226,6 +226,29 @@ In general, arguments in the the result pattern will be passed directly to the
 the pattern by following the exact same order as the ODS `arguments` definition.
 Otherwise, a custom `build()` method that matches the argument list is required.
 
+Right now all ODS-generated `build()` methods require specifying the result
+type(s), unless the op has known traits like `SameOperandsAndResultType` that
+we can use to auto-generate a `build()` method with result type deduction.
+When generating an op to replace the result of the matched root op, we can use
+the matched root op's result type when calling the ODS-generated builder.
+Otherwise (e.g., generating an [auxiliary op](#supporting-auxiliary-ops) or
+generating an op with a nested result pattern), DRR will not be able to deduce
+the result type(s). The pattern author will need to define a custom builder
+that has result type deduction ability via `OpBuilder` in ODS. For example,
+in the following pattern
+
+```tblgen
+def : Pat<(AOp $input, $attr), (COp (BOp) $attr)>;
+```
+
+`BOp` is generated via a nested result pattern; DRR won't be able to deduce the
+result type for it. A custom builder for `BOp` should be defined and it should
+deduce the result type by itself.
+
+Failing to define such a builder will result in an error at C++ compilation
+time saying the call to `BOp::build()` cannot be resolved because of the number
+of parameters mismatch.
+
 #### Generating DAG of operations
 
 `dag` objects can be nested to generate a DAG of operations:
@@ -239,7 +262,7 @@ to replace the matched `AOp`.
 
 #### Binding op results
 
-In the result pattern, we can bind to the result(s) of an newly built op by
+In the result pattern, we can bind to the result(s) of a newly built op by
 attaching symbols to the op. (But we **cannot** bind to op arguments given that
 they are referencing previously bound symbols.) This is useful for reusing
 newly created results where suitable. For example,
@@ -270,7 +293,7 @@ directly fed in as arguments to build the new op. For such cases, we can apply
 transformations on the arguments by calling into C++ helper functions. This is
 achieved by `NativeCodeCall`.
 
-For example, if we want to catpure some op's attributes and group them as an
+For example, if we want to capture some op's attributes and group them as an
 array attribute to construct a new op:
 
 ```tblgen
@@ -350,7 +373,7 @@ def : Pat<(OneAttrOp $attr),
           (TwoAttrOp (getNthAttr<0>:$attr), (getNthAttr<1>:$attr)>;
 ```
 
-In the above, `$_self` is substitutated by the attribute bound by `$attr`, which
+In the above, `$_self` is substituted by the attribute bound by `$attr`, which
 is `OnAttrOp`'s array attribute.
 
 Positional placeholders will be substituted by the `dag` object parameters at
@@ -361,7 +384,7 @@ $in2)`, then this will be translated into C++ call `someFn($in1, $in2, $in0)`.
 ##### Customizing entire op building
 
 `NativeCodeCall` is not only limited to transforming arguments for building an
-op; it can also used to specify how to build an op entirely. An example:
+op; it can be also used to specify how to build an op entirely. An example:
 
 If we have a C++ function for building an op:
 
@@ -379,10 +402,10 @@ def : Pat<(... $input, $attr), (createMyOp $input, $attr)>;
 
 ### Supporting auxiliary ops
 
-A declarative rewrite rule supports multiple result patterns. One of the purpose
-is to allow generating _auxiliary ops_. Auxiliary ops are operations used for
-building the replacement ops; but they are not directly used for replacement
-themselves.
+A declarative rewrite rule supports multiple result patterns. One of the
+purposes is to allow generating _auxiliary ops_. Auxiliary ops are operations
+used for building the replacement ops; but they are not directly used for
+replacement themselves.
 
 For the case of uni-result ops, if there are multiple result patterns, only the
 value generated from the last result pattern will be used to replace the matched
@@ -556,7 +579,7 @@ correspond to multiple actual values.
 
 Constraints can be placed on op arguments when matching. But sometimes we need
 to also place constraints on the matched op's results or sometimes need to limit
-the matching with some constraints that cover both the arugments and the
+the matching with some constraints that cover both the arguments and the
 results. The third parameter to `Pattern` (and `Pat`) is for this purpose.
 
 For example, we can write
@@ -587,7 +610,7 @@ You can
 
 ### Adjusting benefits
 
-The benefit of a `Pattern` is an integer value indicating the benfit of matching
+The benefit of a `Pattern` is an integer value indicating the benefit of matching
 the pattern. It determines the priorities of patterns inside the pattern rewrite
 driver. A pattern with a higher benefit is applied before one with a lower
 benefit.
@@ -599,7 +622,7 @@ pattern. This is based on the heuristics and assumptions that:
 *   If a smaller one is applied first the larger one may not apply anymore.
 
 
-The forth parameter to `Pattern` (and `Pat`) allows to manually tweak a
+The fourth parameter to `Pattern` (and `Pat`) allows to manually tweak a
 pattern's benefit. Just supply `(addBenefit N)` to add `N` to the benefit value.
 
 ## Special directives

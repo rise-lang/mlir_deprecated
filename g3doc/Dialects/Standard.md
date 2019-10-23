@@ -38,8 +38,7 @@ The MLIR branch operation is not allowed to target the entry block for a region.
 Syntax:
 
 ``` {.ebnf}
-operation ::=
-  `cond_br` ssa-use `,` successor `,` successor
+operation ::= `cond_br` ssa-use `,` successor `,` successor
 ```
 
 The `cond_br` terminator operation represents a conditional branch on a boolean
@@ -85,7 +84,8 @@ single function to return.
 Syntax:
 
 ``` {.ebnf}
-operation ::= `call` symbol-ref-id `(` ssa-use-list? `)` `:` function-type
+operation ::= 
+    (ssa-id `=`)? `call` symbol-ref-id `(` ssa-use-list? `)` `:` function-type
 ```
 
 The `call` operation represents a direct call to a function. The operands and
@@ -352,13 +352,38 @@ because of the
 [restrictions on dimensions and symbols](Affine.md#restrictions-on-dimensions-and-symbols)
 in these contexts.
 
+### 'splat' operation
+
+Syntax:
+
+``` {.ebnf}
+operation ::= ssa-id `=` `splat` ssa-use `:` ( vector-type | tensor-type )
+```
+
+Broadcast the operand to all elements of the result vector or tensor. The
+operand has to be of either integer or float type. When the result is a tensor,
+it has to be statically shaped.
+
+Example:
+
+```mlir {.mlir}
+  %s = load %A[%i] : memref<128xf32>
+  %v = splat %s : vector<4xf32>
+  %t = splat %s : tensor<8x16xi32>
+```
+
+TODO: This operation is easy to extend to broadcast to dynamically shaped
+tensors in the same way dynamically shaped memrefs are handled. `mlir {.mlir} //
+Broadcasts %s to a 2-d dynamically shaped tensor, with %m, %n binding // to the
+sizes of the two dynamic dimensions. %m = "foo"() : () -> (index) %n = "bar"() :
+() -> (index) %t = splat %s [%m, %n] : tensor<?x?xi32>`
+
 ### 'store' operation
 
 Syntax:
 
 ``` {.ebnf}
-operation ::= `store` ssa-use `,` ssa-use
-    `[` ssa-use-list `]` `:` memref-type
+operation ::= `store` ssa-use `,` ssa-use `[` ssa-use-list `]` `:` memref-type
 ```
 
 Store value to memref location given by indices. The value stored should have
@@ -427,14 +452,37 @@ Example:
 tensor_store %8, %10 : memref<4x?xf32, #layout, memspace0>
 ```
 
+## Unary Operations
+
+### 'exp' operation
+
+Syntax:
+
+``` {.ebnf}
+operation ::= ssa-id `=` `exp` ssa-use `:` type
+```
+
+Examples:
+
+```mlir {.mlir}
+// Scalar natural exponential.
+%a = exp %b : f64
+
+// SIMD vector element-wise natural exponential.
+%f = exp %g : vector<4xf32>
+
+// Tensor element-wise natural exponential.
+%x = exp %y : tensor<4x?xf8>
+```
+
+The `exp` operation takes one operand and returns one result of the same type.
+This type may be a float scalar type, a vector whose element type is float, or a
+tensor of floats. It has no standard attributes.
+
 ## Arithmetic Operations
 
 Basic arithmetic in MLIR is specified by standard operations described in this
 section.
-
-TODO: "sub" etc. Let's not get excited about filling this out yet, we can define
-these on demand. We should be highly informed by and learn from the operations
-supported by HLO and LLVM.
 
 ### 'addi' operation
 
@@ -453,7 +501,7 @@ Examples:
 // SIMD vector element-wise addition, e.g. for Intel SSE.
 %f = addi %g, %h : vector<4xi32>
 
-// Tensor element-wise addition, analogous to HLO's add operation.
+// Tensor element-wise addition.
 %x = addi %y, %z : tensor<4x?xi8>
 ```
 
@@ -479,7 +527,7 @@ Examples:
 // SIMD vector addition, e.g. for Intel SSE.
 %f = addf %g, %h : vector<4xf32>
 
-// Tensor addition, analogous to HLO's add operation.
+// Tensor addition.
 %x = addf %y, %z : tensor<4x?xbf16>
 ```
 
@@ -732,7 +780,7 @@ Examples:
 // SIMD pointwise vector multiplication, e.g. for Intel SSE.
 %f = mulf %g, %h : vector<4xf32>
 
-// Tensor pointwise multiplication, analogous to HLO's pointwise multiply operation.
+// Tensor pointwise multiplication.
 %x = mulf %y, %z : tensor<4x?xbf16>
 ```
 

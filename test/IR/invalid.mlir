@@ -21,8 +21,7 @@ func @indexvector(vector<4 x index>) -> () // expected-error {{vector elements m
 
 // -----
 
-// Everything is valid in a memref.
-func @indexmemref(memref<? x index>) -> ()
+func @indexmemref(memref<? x index>) -> () // expected-error {{invalid memref element type}}
 
 // -----
 
@@ -56,7 +55,7 @@ func @memrefs(memref<2x4xi8, #map0, 1, 2>) // expected-error {{multiple memory s
 #map0 = (d0, d1) -> (d0, d1)
 #map1 = (d0, d1) -> (d0, d1)
 
-func @memrefs(memref<2x4xi8, #map0, 1, #map1>) // expected-error {{affine map after memory space in memref type}}
+func @memrefs(memref<2x4xi8, #map0, 1, #map1>) // expected-error {{expected memory space to be last in memref type}}
 
 // -----
 // Test dimension mismatch between memref and layout map.
@@ -70,6 +69,38 @@ func @memrefs(memref<42xi8, #map0>) // expected-error {{memref affine map dimens
 #map0 = (d0, d1) -> (d0, d1)
 #map1 = (d0) -> (d0)
 func @memrefs(memref<42x42xi8, #map0, #map1>) // expected-error {{memref affine map dimension mismatch}}
+
+// -----
+
+func @memref_space_after_strides(memref<42x42xi8, 0, offset: ?, strides: [?, ?]>) // expected-error {{expected memory space to be last in memref type}}
+
+// -----
+
+func @memref_stride_missing_colon(memref<42x42xi8, offset ?, strides: [?, ?]>) // expected-error {{expected colon after `offset` keyword}}
+
+// -----
+
+func @memref_stride_invalid_offset(memref<42x42xi8, offset: [], strides: [?, ?]>) // expected-error {{invalid offset}}
+
+// -----
+
+func @memref_stride_missing_strides(memref<42x42xi8, offset: 0 [?, ?]>) // expected-error {{expected comma after offset value}}
+
+// -----
+
+func @memref_stride_missing_strides(memref<42x42xi8, offset: 0, [?, ?]>) // expected-error {{expected `strides` keyword after offset specification}}
+
+// -----
+
+func @memref_stride_missing_colon_2(memref<42x42xi8, offset: 0, strides [?, ?]>) // expected-error {{expected colon after `strides` keyword}}
+
+// -----
+
+func @memref_stride_invalid_strides(memref<42x42xi8, offset: 0, strides: ()>) // expected-error {{invalid braces-enclosed stride list}}
+
+// -----
+
+func @memref_zero_stride(memref<42x42xi8, offset: ?, strides: [0, ?]>) // expected-error {{invalid memref stride}}
 
 // -----
 
@@ -893,6 +924,11 @@ func @invalid_func_arg_attr(i1 {non_dialect_attr = 10})
 
 // -----
 
+// expected-error @+1 {{results may only have dialect attributes}}
+func @invalid_func_result_attr() -> (i1 {non_dialect_attr = 10})
+
+// -----
+
 // expected-error @+1 {{expected '<' in tuple type}}
 func @invalid_tuple_missing_less(tuple i32>)
 
@@ -1045,7 +1081,7 @@ func @bad_complex(complex<i32)
 
 // -----
 
-// expected-error @+1 {{cannot parse type: i32 f32}}
+// expected-error @+1 {{unexpected additional tokens 'f32' after parsing type: 'i32'}}
 func @bad_tuple(!spv.ptr<i32 f32, Uniform>)
 
 // -----
@@ -1064,8 +1100,20 @@ func @invalid_region_dominance() {
 
 // -----
 
+func @invalid_region_dominance() {
+  // expected-note @+1 {{operand defined here}}
+  %def = "foo.region_with_def"() ({
+    // expected-error @+1 {{operand #0 does not dominate this use}}
+    "foo.use" (%def) : (i32) -> ()
+    "foo.yield" () : () -> ()
+  }) : () -> (i32)
+  return
+}
+
+// -----
+
 func @hexadecimal_bf16() {
-  // expected-error @+1 {{integer literal not valid for specified type}}
+  // expected-error @+1 {{hexadecimal float literal not supported for bfloat16}}
   "foo"() {value = 0xffff : bf16} : () -> ()
 }
 
