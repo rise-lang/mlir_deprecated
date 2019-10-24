@@ -21,6 +21,7 @@ struct ArrayTypeStorage;
 struct RiseLambdaTypeStorage;
 struct RiseFunTypeStorage;
 struct RiseDataTypeWrapperStorage;
+struct RiseTupleTypeStorage;
 }
 
 /// LLVM-style RTTI: one entry per subclass to allow dyn_cast/isa.
@@ -35,6 +36,7 @@ enum RiseTypeKind {
     RISE_DATATYPE,
     RISE_INT,
     RISE_FLOAT,
+    RISE_TUPLE,
     RISE_LAMBDA,
     RISE_ARRAY,
 };
@@ -182,6 +184,23 @@ public:
     }
 };
 
+class Tuple : public mlir::Type::TypeBase<Tuple, DataType, detail::RiseTupleTypeStorage> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_TUPLE; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
+
+    /// This method is used to get an instance of the 'SimpleType'. Given that
+    /// this is a parameterless type, it just needs to take the context for
+    /// uniquing purposes.
+    static Tuple get(mlir::MLIRContext *context, DataType first, DataType second);
+    DataType getFirst();
+    DataType getSecond();
+};
 
 /// Type for Rise arrays.
 /// In MLIR Types are reference to immutable and uniqued objects owned by the
@@ -196,11 +215,11 @@ public:
 
     static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                             mlir::MLIRContext *context,
-                                                            int size, Type elementType);
+                                                            int size, DataType elementType);
 
     /// Get the unique instance of this Type from the context.
     static ArrayType get(mlir::MLIRContext *context,
-                             int size, mlir::Type elementType);
+                             int size, DataType elementType);
 
     /// Support method to enable LLVM-style RTTI type casting.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_ARRAY; }
@@ -208,7 +227,7 @@ public:
 
     int getSize();
     /// Return the type of individual elements in the array.
-    mlir::Type getElementType();
+    DataType getElementType();
 
 };
 

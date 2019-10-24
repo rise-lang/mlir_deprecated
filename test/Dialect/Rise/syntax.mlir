@@ -30,6 +30,17 @@ module {
 
         "rise.return"() : () -> ()
   }
+  func @rise_zip_example() {
+        %int0 = rise.literal #rise.int<7>
+        %int1 = rise.literal #rise.float<13>
+        %intTuple = rise.tuple %int0 : !rise.int, %int1 : !rise.float
+
+        %array0 = rise.literal #rise.array<2, !rise.int, [1,2]>
+        %array1 = rise.literal #rise.array<2, !rise.int, [1,2]>
+        %arrayTuple = rise.zip %array0 : !rise.array<2, int>, %array1 : !rise.array<2, int>
+
+         "rise.return"() : () -> ()
+  }
 //  func @dot_product(%m : !rise.array<5, !rise.nat>, %n : !rise.array<5, !rise.nat>) {
 //      %zipped = rise.zip(%m, %n)
 //      %xs = rise.apply(%addFun, %zipped)

@@ -323,7 +323,69 @@ static void print(OpAsmPrinter *p, LiteralOp &op) {
         *p << " : " << op.getType();
 }
 
+//===----------------------------------------------------------------------===//
+// Tuples
+//===----------------------------------------------------------------------===//
+ParseResult parseTupleOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
 
+    OpAsmParser::OperandType left;
+    OpAsmParser::OperandType right;
+    DataType leftType;
+    DataType rightType;
+
+    result.setOperandListToResizable();
+
+
+    if (parser.parseOperand(left) || parser.parseColon() || parser.parseType(leftType))
+        failure();
+    if (parser.parseComma())
+        failure();
+    if (parser.parseOperand(right) || parser.parseColon() || parser.parseType(rightType))
+        failure();
+
+    if (parser.resolveOperand(left, leftType, result.operands))
+        failure();
+    if (parser.resolveOperand(right, rightType, result.operands))
+        failure();
+    result.addTypes(Tuple::get(builder.getContext(), leftType, rightType));
+
+    return success();
+}
+
+ParseResult parseZipOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
+
+    OpAsmParser::OperandType left;
+    OpAsmParser::OperandType right;
+    ArrayType leftType;
+    ArrayType rightType;
+
+    result.setOperandListToResizable();
+
+
+    if (parser.parseOperand(left) || parser.parseColonType(leftType))
+        failure();
+    if (parser.resolveOperand(left, leftType, result.operands))
+        failure();
+
+    if (parser.parseComma())
+        failure();
+
+    if (parser.parseOperand(right) || parser.parseColonType(rightType))
+        failure();
+    if (parser.resolveOperand(right, rightType, result.operands))
+        failure();
+
+    if (rightType != leftType)
+        std::cout << "Arrays are not compatible";
+
+    ArrayType resultType = ArrayType::get(builder.getContext(), rightType.getSize(),
+            Tuple::get(builder.getContext(), leftType.getElementType(), rightType.getElementType()));
+    result.addTypes(resultType);
+
+    return success();
+}
 
 //===----------------------------------------------------------------------===//
 // Arithmetics

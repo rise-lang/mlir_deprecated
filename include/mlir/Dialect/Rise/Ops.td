@@ -60,8 +60,9 @@ def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
 
 def IntType : Type<CPred<"$_self.isa<Int>()">, "int type">;
 def FloatType : Type<CPred<"$_self.isa<Float>()">, "float type">;
+def TupleType : Type<CPred<"$_self.isa<Tuple>()">, "tuple type">;
 def ArrayType : Type<CPred<"$_self.isa<ArrayType>()">, "array type">;
-def DataType : Type<Or<[IntType.predicate, FloatType.predicate, ArrayType.predicate]>>;
+def DataType : Type<Or<[IntType.predicate, FloatType.predicate, TupleType.predicate, ArrayType.predicate]>>;
 
 
 def NatOrDataType : Type<Or<[NatType.predicate, DataType.predicate]>>;
@@ -148,11 +149,23 @@ def MapOp : Rise_Op<"map", [NoSideEffect]> {
     let results = (outs AnyType:$outArray);
 }
 
+def ZipOp : Rise_Op<"zip", [NoSideEffect]> {
+
+    let summary = "rise terminator operation";
+    let description = [{
+        }];
+    let arguments = (ins ArrayType:$leftArray, ArrayType:$rightArray);
+    let parser = [{ return parse$cppClass(parser, result); }];
+
+    let results = (outs ArrayType:$zippedArray);
+
+}
+
 def TupleOp : Rise_Op<"tuple", [NoSideEffect]> {
     let summary = "tuple";
-    let arguments = (ins SubclassOfKindType:$left, SubclassOfKindType:$right);
-    let results = (outs AnyType:$tuple);
-
+    let arguments = (ins DataType:$left, DataType:$right);
+    let results = (outs TupleType:$tuple);
+    let parser = [{ return parse$cppClass(parser, result); }];
 }
 
 def ReturnOp : Rise_Op<"return", [Terminator]> {

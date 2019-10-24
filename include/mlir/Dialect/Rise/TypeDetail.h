@@ -103,11 +103,52 @@ struct RiseLambdaTypeStorage : public mlir::TypeStorage {
     mlir::Type output;
 };
 
+/// This class holds the implementation of the TupleType.
+/// It is intended to be uniqued based on its content and owned by the context.
+struct RiseTupleTypeStorage : public mlir::TypeStorage {
+    RiseTupleTypeStorage(DataType first, DataType second) : first(first), second(second) {}
+    /// This defines how we unique this type in the context: our key contains
+    /// only the shape, a more complex type would have multiple entries in the
+    /// tuple here.
+    /// The element of the tuples usually matches 1-1 the arguments from the
+    /// public `get()` method arguments from the facade.
+
+    using KeyTy = std::pair<DataType, DataType>;
+
+    static llvm::hash_code hashKey(const KeyTy &key) {
+        return llvm::hash_combine(key.first, key.second);
+    }
+
+    /// When the key hash hits an existing type, we compare the shape themselves
+    /// to confirm we have the right type.
+    bool operator==(const KeyTy &key) const { return key == KeyTy(first, second); }
+
+
+    static KeyTy getKey(DataType first, DataType second) {
+        return KeyTy(first, second);
+    }
+    /// This is a factory method to create our type storage. It is only
+    /// invoked after looking up the type in the context using the key and not
+    /// finding it.
+    static RiseTupleTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                       const KeyTy &key) {
+        return new(allocator.allocate<RiseTupleTypeStorage>()) RiseTupleTypeStorage(key.first, key.second);
+    }
+
+    DataType getFirst() const {return first; }
+    DataType getSecond() const {return second; }
+private:
+    DataType first;
+    DataType second;
+};
+
+
+
 
 /// This class holds the implementation of the RiseArrayType.
 /// It is intended to be uniqued based on its content and owned by the context.
 struct ArrayTypeStorage : public mlir::TypeStorage {
-    ArrayTypeStorage(int size, mlir::Type elementType) : size(size), elementType(elementType) {}
+    ArrayTypeStorage(int size, DataType elementType) : size(size), elementType(elementType) {}
     /// This defines how we unique this type in the context: our key contains
     /// only the shape, a more complex type would have multiple entries in the
     /// tuple here.
@@ -115,7 +156,7 @@ struct ArrayTypeStorage : public mlir::TypeStorage {
     /// public `get()` method arguments from the facade.
 
     //TODO: array should only contain Rise types
-    using KeyTy = std::pair<int, mlir::Type>;
+    using KeyTy = std::pair<int, DataType>;
 
     static llvm::hash_code hashKey(const KeyTy &key) {
         return llvm::hash_combine(key.first, key.second);
@@ -126,7 +167,7 @@ struct ArrayTypeStorage : public mlir::TypeStorage {
     bool operator==(const KeyTy &key) const { return key == KeyTy(size, elementType); }
 
 
-    static KeyTy getKey(int size, mlir::Type elementType) {
+    static KeyTy getKey(int size, DataType elementType) {
         return KeyTy(size, elementType);
     }
     /// This is a factory method to create our type storage. It is only
@@ -138,10 +179,10 @@ struct ArrayTypeStorage : public mlir::TypeStorage {
     }
 
     int getSize() const { return size; }
-    mlir::Type getElementType() const { return elementType; }
+    DataType getElementType() const { return elementType; }
 private:
     int size;
-    mlir::Type elementType;
+    DataType elementType;
 };
 
 } //end namespace detail

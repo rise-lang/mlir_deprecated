@@ -50,7 +50,7 @@ RiseDialect::RiseDialect(mlir::MLIRContext *ctx) : mlir::Dialect("rise", ctx) {
 #include "mlir/Dialect/Rise/Ops.cpp.inc"
     >();
     //      Types:                              Nats:               Datatypes:
-    addTypes<RiseType, FunType, DataTypeWrapper, Nat, NatTypeWrapper, DataType, Int, Float, ArrayType>();
+    addTypes<RiseType, FunType, DataTypeWrapper, Nat, NatTypeWrapper, DataType, Int, Float, Tuple, ArrayType>();
     addAttributes<RiseTypeAttr>();
 }
 
@@ -144,6 +144,8 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
 }
 
 DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) const {
+    if (typeString.startswith("!rise.")) typeString.consume_front("!rise.");
+
     if (typeString.startswith("array") || typeString.startswith("!rise.array")) {
 //        std::cout << "full typeString: " << typeString.str() << "\n";
         if (!typeString.consume_front("array<") || !typeString.consume_back(">")) {
@@ -170,7 +172,7 @@ DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) co
 
         if (elementTypeString.startswith("!rise."))
             elementTypeString.consume_front("!rise.");
-        mlir::Type elementType = parseType(elementTypeString, loc);
+        DataType elementType = parseDataType(elementTypeString, loc);
 
 //        std::cout << "have an array<" << size << ", " << elementTypeString.str() << "\n";
 
@@ -207,6 +209,10 @@ std::string static stringForType(Type type) {
         }
         case RiseTypeKind::RISE_NAT: {
             return "nat";
+        }
+        case RiseTypeKind::RISE_TUPLE: {
+            return "tuple<" + stringForType(type.dyn_cast<Tuple>().getFirst()) + ", "
+                + stringForType(type.dyn_cast<Tuple>().getSecond()) + ">";
         }
         case RiseTypeKind::RISE_ARRAY: {
             return "array<" + std::to_string(type.dyn_cast<ArrayType>().getSize()) + ", "
@@ -267,8 +273,8 @@ RiseTypeAttr RiseDialect::parseNatAttribute(StringRef typeString,
 
 
 
-Type static getArrayStructure(mlir::MLIRContext *context, StringRef structureString,
-        Type elementType, mlir::Location loc) {
+DataType static getArrayStructure(mlir::MLIRContext *context, StringRef structureString,
+        DataType elementType, mlir::Location loc) {
 
     StringRef currentDim, restStructure;
     std::tie(currentDim, restStructure) = structureString.split('.');
@@ -337,7 +343,7 @@ RiseTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString, mlir::Loc
         elementTypeString = elementTypeString.trim();
         valueString = valueString.trim();
 
-        Type elementType = RiseDialect::parseType(elementTypeString, loc);
+        DataType elementType = RiseDialect::parseDataType(elementTypeString, loc);
 
         //TODO: check that value structure fits specified structure
         return RiseTypeAttr::get(getContext(),

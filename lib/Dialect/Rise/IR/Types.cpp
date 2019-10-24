@@ -100,8 +100,19 @@ RiseType FunType::getOutput() {
     return getImpl()->output;
 }
 
+//===----------------------------------------------------------------------===//
+// TupleType
+//===----------------------------------------------------------------------===//
+Tuple rise::Tuple::get(mlir::MLIRContext *context, DataType first, DataType second) {
+    return Base::get(context, RiseTypeKind::RISE_TUPLE, first, second);
+}
 
-
+DataType rise::Tuple::getFirst() {
+    return getImpl()->getFirst();
+}
+DataType rise::Tuple::getSecond() {
+    return getImpl()->getSecond();
+}
 //===----------------------------------------------------------------------===//
 // LambdaType
 //===----------------------------------------------------------------------===//
@@ -167,19 +178,19 @@ Type LambdaType::getOutput() {
 
 int ArrayType::getSize() { return getImpl()->getSize(); }
 
-mlir::Type ArrayType::getElementType() {
+DataType ArrayType::getElementType() {
     return getImpl()->getElementType();
 }
 
 ArrayType ArrayType::get(mlir::MLIRContext *context,
-                                 int size, Type elementType) {
+                                 int size, DataType elementType) {
     return Base::get(context, RiseTypeKind::RISE_ARRAY, size, elementType);
 }
 /// This method is used to verify the construction invariants passed into the
 /// 'get' and 'getChecked' methods. Note: This method is completely optional.
 mlir::LogicalResult ArrayType::verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                              mlir::MLIRContext *context,
-                                                             int size, Type elementType) {
+                                                             int size, DataType elementType) {
     ///For some reason this method is called without a valid location in StorageUniquerSupport
 
     //TODO: Determine here all valid types which an Array can contain
