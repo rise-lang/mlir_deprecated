@@ -39,8 +39,8 @@ ParseResult parseLambdaOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
     OpAsmParser::OperandType lambdaInputVariable;
-    DataType lambdaInputType;
-    DataType lambdaOutputType;
+    RiseType lambdaInputType;
+    RiseType lambdaOutputType;
     // Parse the lambdaInput variable
     if (parser.parseRegionArgument(lambdaInputVariable))
         return failure();
@@ -62,8 +62,42 @@ ParseResult parseLambdaOp(OpAsmParser &parser, OperationState &result) {
     // Parse the optional attribute list.
     if (parser.parseOptionalAttributeDict(result.attributes))
         return failure();
+    std::cout << "yo \n";
 
-    FunType type = FunType::get(builder.getContext(), DataTypeWrapper::get(builder.getContext(), lambdaInputType), DataTypeWrapper::get(builder.getContext(), lambdaOutputType));
+    RiseType funInput;
+    RiseType funOutput;
+
+    //This seems not like the right way to do this.
+    switch (lambdaInputType.getKind()) {
+        default: {
+            funInput = lambdaInputType;
+            break;
+        }
+        case RiseTypeKind::RISE_INT: {
+            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Int>());
+            break;
+        }
+        case RiseTypeKind::RISE_FLOAT: {
+            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Float>());
+            break;
+        }
+    }
+    switch (lambdaOutputType.getKind()) {
+        default: {
+            funOutput = lambdaOutputType;
+            break;
+        }
+        case RiseTypeKind::RISE_INT: {
+            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Int>());
+            break;
+        }
+        case RiseTypeKind::RISE_FLOAT: {
+            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Float>());
+            break;
+        }
+    }
+
+    FunType type = FunType::get(builder.getContext(), funInput, funOutput);
     result.addTypes(type);
     return success();
 }
@@ -211,6 +245,7 @@ ParseResult parseApplyOp(OpAsmParser &parser, OperationState &result) {
     FunType funType;
     OpAsmParser::OperandType argumentOperand;
     Type argumentType;
+    Type outputType;
 
     //now looks %result = rise.apply %id : !rise.fun<!rise.wrapped<int>, !rise.wrapped<int>>, %42
     //parse LambdaInputType
@@ -233,12 +268,16 @@ ParseResult parseApplyOp(OpAsmParser &parser, OperationState &result) {
     if (argumentType.isa<DataTypeWrapper>()) {
         argumentType = argumentType.dyn_cast<DataTypeWrapper>().getData();
     }
-
     if (parser.resolveOperand(argumentOperand, argumentType, result.operands))
         failure();
 
+    outputType = funType.getOutput();
+    if (outputType.isa<DataTypeWrapper>()) {
+        outputType = outputType.dyn_cast<DataTypeWrapper>().getData();
+    }
+
     result.setOperandListToResizable();
-    result.addTypes(argumentType);
+    result.addTypes(outputType);
     return success();
 }
 
@@ -250,7 +289,7 @@ ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
     OpAsmParser::OperandType value;
-
+    Type type;
     result.setOperandListToResizable();
 
 //    SmallVector<OpAsmParser::OperandType, 1> values;
@@ -263,7 +302,9 @@ ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
 
     if (parser.parseOperand(value))
         failure();
-    if (parser.resolveOperand(value, Int::get(parser.getBuilder().getContext()), result.operands))
+    if (parser.parseColonType(type))
+        failure();
+    if (parser.resolveOperand(value, type, result.operands))
         failure();
 
     return success();

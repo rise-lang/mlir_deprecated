@@ -104,7 +104,7 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
         }
         // Split into input type and output type
         StringRef inputDataString, outputDataString;
-        std::tie(inputDataString, outputDataString) = typeString.rsplit(',');
+        std::tie(inputDataString, outputDataString) = typeString.split(',');
         if (outputDataString.empty()) {
             emitError(loc,
                       "expected comma to separate input type and output type '")
@@ -134,6 +134,12 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
 
         return DataTypeWrapper::get(getContext(), wrappedType);
 
+    }
+    if (typeString.equals("int")) {
+        return DataTypeWrapper::get(getContext(), Int::get(getContext()));
+    }
+    if (typeString.equals("float")) {
+        return DataTypeWrapper::get(getContext(), Float::get(getContext()));
     }
 }
 
@@ -264,11 +270,9 @@ RiseTypeAttr RiseDialect::parseNatAttribute(StringRef typeString,
 Type static getArrayStructure(mlir::MLIRContext *context, StringRef structureString,
         Type elementType, mlir::Location loc) {
 
-    std::cout << "structureString:" << structureString.str() << "\n";
     StringRef currentDim, restStructure;
     std::tie(currentDim, restStructure) = structureString.split('.');
 
-    std::cout << "restStructure: " << restStructure.str() << "\n";
     if (restStructure == "") {
         return ArrayType::get(context, std::stoi(currentDim), elementType);
     } else {
@@ -362,7 +366,6 @@ void RiseDialect::printAttribute(Attribute attribute, raw_ostream &os) const {
                     return;
                 }
                 case RiseTypeKind::RISE_INT: {
-                    std::cout << "int value: " << attribute.dyn_cast<RiseTypeAttr>().getValue();
                     os << "int<" << attribute.dyn_cast<RiseTypeAttr>().getValue() << ">";
                     break;
                 }

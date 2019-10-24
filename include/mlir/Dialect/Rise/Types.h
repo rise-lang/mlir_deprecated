@@ -27,6 +27,7 @@ struct RiseDataTypeWrapperStorage;
 enum RiseTypeKind {
     // The enum starts at the range reserved for this dialect.
             RISE_TYPE = mlir::Type::FIRST_RISE_TYPE,
+            RISE_BASETYPE,
     RISE_FUNTYPE,
     RISE_DATATYPE_WRAPPER,
     RISE_NAT,
@@ -38,7 +39,27 @@ enum RiseTypeKind {
     RISE_ARRAY,
 };
 
-class RiseType : public mlir::Type::TypeBase<RiseType, Type> {
+class BaseType : public mlir::Type::TypeBase<BaseType, Type> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_BASETYPE; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_BASETYPE; }
+
+    /// This method is used to get an instance of the 'SimpleType'. Given that
+    /// this is a parameterless type, it just needs to take the context for
+    /// uniquing purposes.
+    static BaseType get(mlir::MLIRContext *context) {
+        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
+        // of this type.
+        return Base::get(context, RiseTypeKind::RISE_BASETYPE);
+    }
+};
+
+class RiseType : public mlir::Type::TypeBase<RiseType, BaseType> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -46,6 +67,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -64,6 +86,7 @@ public:
     using Base::Base;
 
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_FUNTYPE; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
 
     static FunType get(mlir::MLIRContext *context,
                        RiseType input, RiseType output);
@@ -82,7 +105,7 @@ public:
 };
 
 
-class DataType : public mlir::Type::TypeBase<DataType, mlir::Type> {
+class DataType : public mlir::Type::TypeBase<DataType, BaseType> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -90,6 +113,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -109,6 +133,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE_WRAPPER; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -125,6 +150,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_INT; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -144,6 +170,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_FLOAT; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -177,6 +204,7 @@ public:
 
     /// Support method to enable LLVM-style RTTI type casting.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_ARRAY; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
 
     int getSize();
     /// Return the type of individual elements in the array.
@@ -184,7 +212,7 @@ public:
 
 };
 
-class Nat : public mlir::Type::TypeBase<Nat, mlir::Type> {
+class Nat : public mlir::Type::TypeBase<Nat, BaseType> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -192,6 +220,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_NAT; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -212,6 +241,7 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT_WRAPPER; }
+    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -223,7 +253,7 @@ public:
     }
 };
 
-
+///deprecated
 class LambdaType : public mlir::Type::TypeBase<LambdaType, Type, detail::RiseLambdaTypeStorage> {
 public:
     using Base::Base;
