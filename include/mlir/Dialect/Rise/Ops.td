@@ -112,7 +112,6 @@ def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
 //    let parser = [{ return parse$cppClass(parser, result); }];
 //}
 
-
 def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let summary = "lambda";
 
@@ -166,6 +165,27 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
     let builders = [OpBuilder<
         "Builder *b, OperationState &result", [{ build(b, result, llvm::None); }]
         >];
+}
+
+//===----------------------------------------------------------------------===//
+// Arithmetic operations
+//===----------------------------------------------------------------------===//
+def AddIntOp : Rise_Op<"addi", [NoSideEffect]> {
+    let summary = "arithmetic add for ints";
+    let description = [{
+        }];
+    let arguments = (ins IntType:$summand0, IntType:$summand1);
+    let results = (outs IntType:$result);
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
+
+def AddFloatOp : Rise_Op<"addf", [NoSideEffect]> {
+    let summary = "arithmetic add for floats";
+    let description = [{
+        }];
+    let arguments = (ins FloatType:$summand0, FloatType:$summand1);
+    let results = (outs FloatType:$result);
+    let parser = [{ return parse$cppClass(parser, result); }];
 }
 //def ForOp : Loop_Op<"for",
 //        [SingleBlockImplicitTerminator<"TerminatorOp">]> {

@@ -2,29 +2,31 @@ module {
   func @rise_id() {
     ^id:
         %42 = rise.literal #rise.int<42>
+        //Array demonstration
         %array = rise.literal #rise.array<2, !rise.int, [1,2]>
         %nestedArray = rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
 
         %id = rise.lambda %i : !rise.int -> !rise.int {
-            rise.return %i :!rise.int
+            rise.return %i : !rise.int
         }
         %result = rise.apply %id : !rise.fun<int, int>, %42
 
         "rise.return"() : () -> ()
 //    "rise.return"(%id) : (!rise.fun<!rise.int, !rise.int>) -> ()
   }
-  func @rise_add() {
-        %summand0 = rise.literal #rise.int<7>
-        %summand1 = rise.literal #rise.int<13>
+  func @rise_add_example() {
+        %int0 = rise.literal #rise.int<7>
+        %int1 = rise.literal #rise.int<13>
 
-        %add0 = rise.lambda %i : !rise.int -> !rise.fun<int, int> {
-            %tmp = rise.lambda %j : !rise.int -> !rise.int {
-                rise.return %i : !rise.int//+ %j
+        %addFun = rise.lambda %summand0 : !rise.int -> !rise.fun<int, int> {
+            %nested = rise.lambda %summand1 : !rise.int -> !rise.int {
+                %addition = rise.addi %summand0, %summand1
+                rise.return %addition : !rise.int
             }
-            rise.return %tmp : !rise.fun<int, int>
+            rise.return %nested : !rise.fun<int, int>
         }
-        %add = rise.apply %add0 : !rise.fun<int, !rise.fun<int, int>>, %summand0
-        %result = rise.apply %add : !rise.fun<int, int>, %summand1
+        %add = rise.apply %addFun : !rise.fun<int, !rise.fun<int, int>>, %int0
+        %result = rise.apply %add : !rise.fun<int, int>, %int1
 
         "rise.return"() : () -> ()
   }

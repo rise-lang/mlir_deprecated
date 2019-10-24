@@ -324,6 +324,51 @@ static void print(OpAsmPrinter *p, LiteralOp &op) {
 }
 
 
+
+//===----------------------------------------------------------------------===//
+// Arithmetics
+//===----------------------------------------------------------------------===//
+
+ParseResult parseAddIntOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
+
+    OpAsmParser::OperandType summand0;
+    OpAsmParser::OperandType summand1;
+    result.setOperandListToResizable();
+
+
+    if (parser.parseOperand(summand0) || parser.parseComma() || parser.parseOperand(summand1))
+        failure();
+    if (parser.resolveOperand(summand0, Int::get(builder.getContext()), result.operands))
+        failure();
+    if (parser.resolveOperand(summand1, Int::get(builder.getContext()), result.operands))
+        failure();
+
+    result.addTypes(Int::get(builder.getContext()));
+
+    return success();
+}
+
+ParseResult parseAddFloatOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
+
+    OpAsmParser::OperandType summand0;
+    OpAsmParser::OperandType summand1;
+    result.setOperandListToResizable();
+
+
+    if (parser.parseOperand(summand0) || parser.parseComma() || parser.parseOperand(summand1))
+        failure();
+    if (parser.resolveOperand(summand0, Float::get(builder.getContext()), result.operands))
+        failure();
+    if (parser.resolveOperand(summand1, Float::get(builder.getContext()), result.operands))
+        failure();
+
+    result.addTypes(Float::get(builder.getContext()));
+
+    return success();
+}
+
 //    static void print(OpAsmPrinter *p, ApplyOp op) {
 //        *p << "call " << op.getAttr("callee") << '(';
 //        p.printOperands(op.getOperands());
