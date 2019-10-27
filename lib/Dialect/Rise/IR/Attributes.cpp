@@ -20,18 +20,47 @@
 namespace mlir {
 namespace rise {
 
+//===----------------------------------------------------------------------===//
+// LiteralAttr
+//===----------------------------------------------------------------------===//
 
+LiteralAttr LiteralAttr::get(MLIRContext *context, DataType type, std::string value) {
+    return Base::get(context, RiseAttributeKind::LITERAL_ATTR, type, value);
+}
+DataType LiteralAttr::getType() const { return getImpl()->type; }
+
+std::string LiteralAttr::getValue() const { return getImpl()->value; }
 
 //===----------------------------------------------------------------------===//
 // RiseTypeAttr
 //===----------------------------------------------------------------------===//
 
-RiseTypeAttr RiseTypeAttr::get(MLIRContext *context, mlir::Type type, std::string value) {
-    return Base::get(context, RiseAttributeKind::RISE_TYPE_ATTR, type, value);
+RiseTypeAttr RiseTypeAttr::get(MLIRContext *context, RiseType value) {
+    return Base::get(context, RiseAttributeKind::RISETYPE_ATTR, value);
 }
-mlir::Type RiseTypeAttr::getType() const { return getImpl()->type; }
+RiseType RiseTypeAttr::getValue() const { return getImpl()->value; }
 
-std::string RiseTypeAttr::getValue() const { return getImpl()->value; }
+
+
+//===----------------------------------------------------------------------===//
+// DataTypeAttr
+//===----------------------------------------------------------------------===//
+
+DataTypeAttr DataTypeAttr::get(MLIRContext *context, DataType value) {
+    return Base::get(context, RiseAttributeKind::DATATYPE_ATTR, value);
+}
+DataType DataTypeAttr::getValue() const { return getImpl()->value; }
+
+//===----------------------------------------------------------------------===//
+// NatAttr
+//===----------------------------------------------------------------------===//
+
+NatAttr NatAttr::get(MLIRContext *context, int value) {
+    return Base::get(context, RiseAttributeKind::NAT_ATTR, value);
+}
+int NatAttr::getValue() const { return getImpl()->value; }
+
+
 
 }
 }

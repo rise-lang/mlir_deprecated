@@ -73,14 +73,17 @@ public:
     mlir::Attribute parseAttribute(llvm::StringRef attrData,
             mlir::Type type, mlir::Location loc) const override;
 
-    RiseTypeAttr parseRiseTypeAttribute(StringRef typeString,
-                           mlir::Location loc) const;
+    LiteralAttr parseLiteralAttribute(StringRef attrString,
+            mlir::Location loc) const;
 
-    RiseTypeAttr parseDataTypeAttribute(StringRef typeString,
-                           mlir::Location loc) const;
+    RiseTypeAttr parseRiseTypeAttribute(StringRef attrString,
+            mlir::Location loc) const;
 
-    RiseTypeAttr parseNatAttribute(StringRef typeString,
-                 mlir::Location loc) const;
+    DataTypeAttr parseDataTypeAttribute(StringRef attrString,
+            mlir::Location loc) const;
+
+    NatAttr parseNatAttribute(StringRef attrString,
+            mlir::Location loc) const;
     /// Print an attribute registered to this dialect. Note: The type of the
     /// attribute need not be printed by this method as it is always printed by
     /// the caller.

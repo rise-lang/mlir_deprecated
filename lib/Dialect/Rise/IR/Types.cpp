@@ -34,7 +34,7 @@ namespace rise {
 
 DataType DataTypeWrapper::getData() {
     return getImpl()->data;
-};
+}
 
 DataTypeWrapper DataTypeWrapper::get(mlir::MLIRContext *context, DataType data) {
     return Base::get(context, RiseTypeKind::RISE_DATATYPE_WRAPPER, data);

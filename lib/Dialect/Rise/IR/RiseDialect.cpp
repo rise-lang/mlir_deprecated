@@ -51,7 +51,7 @@ RiseDialect::RiseDialect(mlir::MLIRContext *ctx) : mlir::Dialect("rise", ctx) {
     >();
     //      Types:                              Nats:               Datatypes:
     addTypes<RiseType, FunType, DataTypeWrapper, Nat, NatTypeWrapper, DataType, Int, Float, Tuple, ArrayType>();
-    addAttributes<RiseTypeAttr>();
+    addAttributes<RiseTypeAttr, DataTypeAttr, NatAttr, LiteralAttr>();
 }
 
 
@@ -83,10 +83,10 @@ mlir::Type RiseDialect::parseType(StringRef typeString, mlir::Location loc) cons
 
     if (typeString.startswith("!rise.")) typeString.consume_front("!rise.");
 
-    if (typeString.startswith("fun") || typeString.startswith("wrapped")) {
+    if (typeString.startswith("fun") || typeString.startswith("data")) {
         return parseRiseType(typeString, loc);
     }
-    if (typeString.startswith("array") || typeString.startswith("int") || typeString.startswith("float")) {
+    if (typeString.startswith("array") || typeString.startswith("tuple") || typeString.startswith("int") || typeString.startswith("float")) {
         return parseDataType(typeString, loc);
     }
     if (typeString.startswith("nat")) {
@@ -97,23 +97,56 @@ mlir::Type RiseDialect::parseType(StringRef typeString, mlir::Location loc) cons
 }
 
 RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) const {
+
     if (typeString.startswith("fun")) {
         if (!typeString.consume_front("fun<") || !typeString.consume_back(">")) {
             emitError(loc, "rise.fun delimiter <...> mismatch");
             return nullptr;
         }
+
+        //We have to handle taking functions as input or output for another function
+//        llvm::SmallVector<StringRef, 1> partedString;
+//        typeString.split(partedString, "->");
+//        std::cout << "split: " << partedString[2].str();
+
+//TODO: put this into its own function
+///doing it with std::string for now
+        std::string functionString = typeString.str();
+        std::string subString;
+        size_t pos, oldPos = 0;
+        pos = functionString.find("->");
+        subString = functionString.substr(0,pos);
+
+        while (subString.find("fun") != SIZE_MAX) {
+            oldPos = pos;
+            pos = functionString.find("->", pos+2); //find next occurence
+            //If not found
+            if (pos == SIZE_MAX) {
+                pos = oldPos;
+                break;
+            }
+            std::cout << "test: " << functionString.substr(oldPos+2,pos-(oldPos+2)) << "\n";
+            subString = functionString.substr(oldPos+2,pos-(oldPos+2));
+        }
+        std::cout << "full string: " << typeString.str() << "\n";
+        std::cout << "position of -> delimiter: " << std::to_string(pos) << "\n";
+
+
+
         // Split into input type and output type
         StringRef inputDataString, outputDataString;
-        std::tie(inputDataString, outputDataString) = typeString.split(',');
+        inputDataString = typeString.substr(0, pos);
+        outputDataString = typeString.substr(pos+2, typeString.npos);
+        std::cout << "strings: " << inputDataString.str() << " and " << outputDataString.str() << "\n\n";
+//        std::tie(inputDataString, outputDataString) = typeString.split("->");
         if (outputDataString.empty()) {
             emitError(loc,
-                      "expected comma to separate input type and output type '")
+                      "expected -> to separate input type and output type '")
                     << typeString << "'";
             return nullptr;
         }
         inputDataString = inputDataString.trim();
         outputDataString = outputDataString.trim();
-
         //We can specify `!rise.type` as well as just `type`
         if (inputDataString.startswith("!rise."))
             inputDataString.consume_front("!rise.");
@@ -125,9 +158,10 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
 
         return FunType::get(getContext(), inputData, outputData);
     }
-    if (typeString.startswith("wrapped")) {
-        if (!typeString.consume_front("wrapped<") || !typeString.consume_back(">")) {
-            emitError(loc, "rise.wrapped delimiter <...> mismatch");
+    if (typeString.startswith("data")) {
+        if (!typeString.consume_front("data<") || !typeString.consume_back(">")) {
+
+            emitError(loc, "rise.data delimiter <...> mismatch") << " string: " << typeString.str();
             return nullptr;
         }
         DataType wrappedType = parseDataType(typeString, loc);
@@ -178,6 +212,29 @@ DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) co
 
         return ArrayType::get(getContext(), size, elementType);
     }
+    if (typeString.startswith("tuple<")) {
+        if (!typeString.consume_front("tuple<") || !typeString.consume_back(">")) {
+            emitError(loc, "rise.tuple delimiter <...> mismatch");
+            return nullptr;
+        }
+        StringRef leftTypeString, rightTypeString;
+        std::tie(leftTypeString, rightTypeString) = typeString.split(',');
+        if (rightTypeString.empty()) {
+            emitError(loc,
+                      "expected comma to separate left and right Type in tuple'")
+                    << typeString << "'";
+            return nullptr;
+        }
+
+        leftTypeString = leftTypeString.trim();
+        rightTypeString = rightTypeString.trim();
+
+//        std::cout << "typestrings: " << leftTypeString.str() << " = " << rightTypeString.str();
+        DataType leftType = parseDataType(leftTypeString, loc);
+        DataType rightType = parseDataType(rightTypeString, loc);
+
+        return Tuple::get(getContext(), leftType, rightType);
+    }
     if (typeString.startswith("float")) {
         return Float::get(getContext());
     }
@@ -219,11 +276,11 @@ std::string static stringForType(Type type) {
             + stringForType(type.dyn_cast<ArrayType>().getElementType()) + ">";
         }
         case RiseTypeKind::RISE_FUNTYPE: {
-            return "fun<"  + stringForType(type.dyn_cast<FunType>().getInput()) + ", "
+            return "fun<"  + stringForType(type.dyn_cast<FunType>().getInput()) + " -> "
             + stringForType(type.dyn_cast<FunType>().getOutput()) + ">";
         }
        case RiseTypeKind::RISE_DATATYPE_WRAPPER: {
-            return "wrapped<" + stringForType(type.dyn_cast<DataTypeWrapper>().getData()) + ">";
+            return "data<" + stringForType(type.dyn_cast<DataTypeWrapper>().getData()) + ">";
         }
     }
 }
@@ -240,8 +297,10 @@ void RiseDialect::printType(mlir::Type type, raw_ostream &os) const {
 mlir::Attribute RiseDialect::parseAttribute(llvm::StringRef attrString,
         mlir::Type type, mlir::Location loc) const {
     //we only have RiseTypeAttribute
-
-    if (attrString.startswith("fun") || attrString.startswith("wrapped")) {
+    if (attrString.startswith("lit<")) {
+        return parseLiteralAttribute(attrString, loc);
+    }
+    if (attrString.startswith("fun") || attrString.startswith("data")) {
         return parseRiseTypeAttribute(attrString, loc);
     }
     if (attrString.startswith("array") || attrString.startswith("int") || attrString.startswith("float")) {
@@ -258,16 +317,33 @@ mlir::Attribute RiseDialect::parseAttribute(llvm::StringRef attrString,
             << "I want to parse this attribute: " << attrString;
 
 }
-RiseTypeAttr RiseDialect::parseRiseTypeAttribute(StringRef typeString,
-                                    mlir::Location loc) const {
+RiseTypeAttr RiseDialect::parseRiseTypeAttribute(StringRef attrString,
+                                                 mlir::Location loc) const {
+    std::cout << "parsing of RiseTypeAttributes not implemented yet \n";
    return nullptr;
 }
 
+DataTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString,
+                                                 mlir::Location loc) const {
+    if (attrString.equals("int")) return DataTypeAttr::get(getContext(), Int::get(getContext()));
+    if (attrString.equals("float")) return DataTypeAttr::get(getContext(), Float::get(getContext()));
 
-
-RiseTypeAttr RiseDialect::parseNatAttribute(StringRef typeString,
-                               mlir::Location loc) const {
+    //TODO: Arrays
+    //implement recursive parsing for them.
     return nullptr;
+}
+
+
+NatAttr RiseDialect::parseNatAttribute(StringRef attrString,
+                                       mlir::Location loc) const {
+    if (!attrString.consume_front("nat<") || !attrString.consume_back(">")) {
+        emitError(loc, "#rise.nat delimiter <...> mismatch");
+        return nullptr;
+    }
+    int natValue = std::stoi(attrString);
+    //check whether the <> contain a well structured int
+
+    return NatAttr::get(getContext(), natValue);
 }
 
 
@@ -295,18 +371,22 @@ DataType static getArrayStructure(mlir::MLIRContext *context, StringRef structur
 ///         rise.literal #rise.int<42>
 ///         rise.literal #rise.array<2, rise.int, [1,2]>
 ///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
-RiseTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString, mlir::Location loc) const {
+LiteralAttr RiseDialect::parseLiteralAttribute(StringRef attrString, mlir::Location loc) const {
 
+    if (!attrString.consume_front("lit<") || !attrString.consume_back(">")) {
+        emitError(loc, "#rise.lit delimiter <...> mismatch");
+        return nullptr;
+    }
     ///format:
-    ///     #rise.int<int_value>
-    ///     #rise.int<42>
+    ///     #rise.lit<int<int_value>>
+    ///     #rise.lit<int<42>>
     if (attrString.startswith("int")) {
         if (!attrString.consume_front("int<") || !attrString.consume_back(">")) {
             emitError(loc, "#rise.int delimiter <...> mismatch");
             return nullptr;
         }
         //check whether the <> contain a well structured int
-        return RiseTypeAttr::get(getContext(), Int::get(getContext()), attrString);
+        return LiteralAttr::get(getContext(), Int::get(getContext()), attrString);
     }
     if (attrString.startswith("float")) {
         if (!attrString.consume_front("float<") || !attrString.consume_back(">")) {
@@ -314,12 +394,12 @@ RiseTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString, mlir::Loc
             return nullptr;
         }
         //check whether the <> contain a well structured int
-        return RiseTypeAttr::get(getContext(), Float::get(getContext()), attrString);
+        return LiteralAttr::get(getContext(), Float::get(getContext()), attrString);
     }
     ///format
-    ///     #rise.array<array_structure, element_type, values>
-    ///     #rise.array<2, !rise.int, [1,2]>
-    ///     #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
+    ///     #rise.lit<array<array_structure, element_type, values>
+    ///     #rise.lit<array<2, !rise.int, [1,2]>>
+    ///     #rise.lit<array<2.3, !rise.int, [[1,2,3],[4,5,6]]>>
     if (attrString.startswith("array")) {
         if (!attrString.consume_front("array<") || !attrString.consume_back(">")) {
             emitError(loc, "#rise.array delimiter <...> mismatch");
@@ -346,54 +426,109 @@ RiseTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString, mlir::Loc
         DataType elementType = RiseDialect::parseDataType(elementTypeString, loc);
 
         //TODO: check that value structure fits specified structure
-        return RiseTypeAttr::get(getContext(),
-                getArrayStructure(getContext(), structureString, elementType, loc),
-                //ArrayType::get(getContext(), 2, Int::get(getContext())),
+        return LiteralAttr::get(getContext(),
+                                 getArrayStructure(getContext(), structureString, elementType, loc),
                 valueString);
     }
 }
 
 
 
+std::string static stringForAttribute(Attribute attribute) {
+    switch (attribute.getKind()) {
+        default: {
+            return "unknown rise type";
+        }
+        case RiseAttributeKind::RISETYPE_ATTR: {
+            return "risetype";
+        }
+        case RiseAttributeKind::DATATYPE_ATTR: {
+            return "data<" + stringForType(attribute.dyn_cast<DataTypeAttr>().getValue()) + ">";
+        }
+        case RiseAttributeKind::NAT_ATTR: {
+            return "nat<" + std::to_string(attribute.dyn_cast<NatAttr>().getValue()) + ">";
+        }
+        case RiseAttributeKind::LITERAL_ATTR: {
+            switch (attribute.dyn_cast<LiteralAttr>().getType().getKind()) {
+                default: {
+                    return "unknown rise type";
+                }
+                case RiseTypeKind::RISE_INT: {
+                    return "lit<int<" + attribute.dyn_cast<LiteralAttr>().getValue() + ">>";
+                }
+                case RiseTypeKind::RISE_FLOAT: {
+                    return "lit<float>";
+                }
+                case RiseTypeKind::RISE_NAT: {
+                    return "lat<nat>";
+                }
+                case RiseTypeKind::RISE_ARRAY: {
+                    return "lit<array<" + attribute.dyn_cast<LiteralAttr>().getValue()
+                       //                       << ", " << attribute.dyn_cast<LiteralAttr>().getType().dyn_cast<ArrayType>().getElementType()
+                                          + ">>";
+                }
+                case RiseTypeKind::RISE_FUNTYPE: {
+                    return "lit<fun>"; //not final
+                }
+            }
+        }
+
+    }
+}
 
 void RiseDialect::printAttribute(Attribute attribute, raw_ostream &os) const {
-    //Not sure this is the right way to do Arrays
-
+    os << stringForAttribute(attribute);
+    return ;
 
     switch (attribute.getKind()) {
         default: {
             os << "unknown rise attribute";
             return;
         }
-        case RiseAttributeKind::RISE_TYPE_ATTR: {
-            switch (attribute.dyn_cast<RiseTypeAttr>().getType().getKind()) {
+        case RiseAttributeKind::LITERAL_ATTR: {
+            switch (attribute.dyn_cast<LiteralAttr>().getType().getKind()) {
                 default: {
                     os << "unknown rise type";
                     return;
                 }
                 case RiseTypeKind::RISE_INT: {
-                    os << "int<" << attribute.dyn_cast<RiseTypeAttr>().getValue() << ">";
-                    break;
+                    os << "lit<int<" << attribute.dyn_cast<LiteralAttr>().getValue() << ">>";
+                    return;
                 }
                 case RiseTypeKind::RISE_FLOAT: {
-                    os << "float";
-                    break;
+                    os << "lit<float>";
+                    return;
                 }
                 case RiseTypeKind::RISE_NAT: {
-                    os << "nat";
-                    break;
+                    os << "lat<nat>";
+                    return;
                 }
                 case RiseTypeKind::RISE_ARRAY: {
-                    os << "array<" << attribute.dyn_cast<RiseTypeAttr>().getValue()
-//                       << ", " << attribute.dyn_cast<RiseTypeAttr>().getType().dyn_cast<ArrayType>().getElementType()
-                       << ">";
-                    break;
+                    os << "lit<array<" << attribute.dyn_cast<LiteralAttr>().getValue()
+//                       << ", " << attribute.dyn_cast<LiteralAttr>().getType().dyn_cast<ArrayType>().getElementType()
+                       << ">>";
+                    return;
                 }
                 case RiseTypeKind::RISE_FUNTYPE: {
-                    os << "fun";
-                    break;
+                    os << "lit<fun>"; //not final
+                    return;
                 }
             }
+        }
+        case RiseAttributeKind::NAT_ATTR: {
+            os << "nat<" << attribute.dyn_cast<NatAttr>().getValue() << ">";
+            return;
+        }
+        case RiseAttributeKind::DATATYPE_ATTR: {
+            //switch statement does not work at all
+            //or parsing of zip
+            //TODO: important
+            //for some reason this cast fails
+            //yes no, its clear. for some Reason the NatAttr ends up here
+            os << "data<" << attribute.dyn_cast<DataTypeAttr>().getValue() << ">";
+//            os << "data<>";
+
+            return;
         }
     }
 }

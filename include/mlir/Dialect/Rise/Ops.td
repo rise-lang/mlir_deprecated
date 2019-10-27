@@ -83,13 +83,22 @@ def RiseTypeAttr : Attr<CPred<"$_self.isa<RiseTypeAttr>()">,
     let storageType = [{ RiseTypeAttr }];
     let returnType = [{ mlir::Type }];
 }
-
+def DataTypeAttr : Attr<CPred<"$_self.isa<DataTypeAttr>()">,
+        "datatype attribute">{
+    let storageType = [{ DataTypeAttr }];
+    let returnType = [{ mlir::Type }];
+}
+def NatAttr : Attr<CPred<"$_self.isa<NatAttr>()">,
+        "nat attribute">{
+    let storageType = [{ NatAttr }];
+    let returnType = [{ int }];
+}
 
 def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
     let summary = "literal";
 
     let arguments = (ins AnyAttr:$literalValue);
-    let results = (outs NatOrDataType);
+    let results = (outs RiseType);
 
 //    let builders = [OpBuilder<
 //          "Builder *builder, OperationState *result, Attribute value",
@@ -134,7 +143,7 @@ def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
 
 def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
     let summary = "apply";
-    let arguments = (ins FunType:$fun, IntType:$input);
+    let arguments = (ins FunType:$fun, AnyType:$input);
     let results = (outs AnyType:$result);
     let parser = [{ return parse$cppClass(parser, result); }];
 
@@ -145,26 +154,29 @@ def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
 
 def MapOp : Rise_Op<"map", [NoSideEffect]> {
     let summary = "map";
-    let arguments = (ins ArrayType:$inArray);
-    let results = (outs AnyType:$outArray);
+    let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
+    let parser = [{ return parse$cppClass(parser, result); }];
+
+    let results = (outs FunType:$mapFun);
 }
 
 def ZipOp : Rise_Op<"zip", [NoSideEffect]> {
 
-    let summary = "rise terminator operation";
+    let summary = "rise zip operation";
     let description = [{
         }];
-    let arguments = (ins ArrayType:$leftArray, ArrayType:$rightArray);
+    let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
+    //                  was NatAttr, but for some reason constraint failed with proper nats
     let parser = [{ return parse$cppClass(parser, result); }];
 
-    let results = (outs ArrayType:$zippedArray);
+    let results = (outs FunType:$zipFun);
 
 }
 
 def TupleOp : Rise_Op<"tuple", [NoSideEffect]> {
-    let summary = "tuple";
-    let arguments = (ins DataType:$left, DataType:$right);
-    let results = (outs TupleType:$tuple);
+    let summary = "rise tuple operation";
+    let arguments = (ins DataTypeAttr:$s, DataTypeAttr:$t);
+    let results = (outs FunType:$tupleFun);
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 
