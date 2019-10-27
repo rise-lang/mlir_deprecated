@@ -15,23 +15,23 @@ module {
         "rise.return"() : () -> ()
 //    "rise.return"(%id) : (!rise.fun<!rise.int, !rise.int>) -> ()
     }
-    func @rise_add_example() {
-        %int0 = rise.literal #rise.lit<int<7>>
-        %int1 = rise.literal #rise.lit<int<13>>
-        // %int1 = rise.literal #rise.lit<!rise.int, 13> : !rise.dat<!rise.int>
-
-        %addFun = rise.lambda %summand0 : !rise.int -> !rise.fun<int -> int> {
-            %addWithSummand0 = rise.lambda %summand1 : !rise.int -> !rise.int {
-                %addition = rise.addi %summand0, %summand1
-                rise.return %addition : !rise.int
-            }
-            rise.return %addWithSummand0 : !rise.fun<int -> int>
-        }
-        %addWithInt0 = rise.apply %addFun : !rise.fun<int -> !rise.fun<int -> int>>, %int0
-        %result = rise.apply %addWithInt0 : !rise.fun<int -> int>, %int1
-
-        "rise.return"() : () -> ()
-    }
+//    func @rise_add_example() {
+//        %int0 = rise.literal #rise.lit<int<7>>
+//        %int1 = rise.literal #rise.lit<int<13>>
+//        // %int1 = rise.literal #rise.lit<!rise.int, 13> : !rise.dat<!rise.int>
+//
+//        %addFun = rise.lambda %summand0 : !rise.int -> !rise.fun<int -> int> {
+//            %addWithSummand0 = rise.lambda %summand1 : !rise.int -> !rise.int {
+//                %addition = rise.addi %summand0, %summand1
+//                rise.return %addition : !rise.int
+//            }
+//            rise.return %addWithSummand0 : !rise.fun<int -> int>
+//        }
+//        %addWithInt0 = rise.apply %addFun : !rise.fun<int -> !rise.fun<int -> int>>, %int0
+//        %result = rise.apply %addWithInt0 : !rise.fun<int -> int>, %int1
+//
+//        "rise.return"() : () -> ()
+//    }
     func @rise_tuple_example() {
         //creating a simple tuple of an int and a float
         %int0 = rise.literal #rise.lit<int<7>>
@@ -45,48 +45,82 @@ module {
         %array0 = rise.literal #rise.lit<array<2, !rise.int, [1,2]>>
         %array1 = rise.literal #rise.lit<array<2, !rise.int, [1,2]>>
 
-        %zipFun = rise.zip #rise.nat<2> #rise.int #rise.int //: !rise.Array<!rise.nat<2>, !rise.int> -> !rise.Array<!rise.nat<2>, !rise.int> -> !rise.Array<!rise.nat<2>, !rise.Tuple<!rise.int, !rise.int>>
-        %zipWithArray0 = rise.apply %zipFun : !rise.fun<data<array<2, int>> -> fun<data<array<2, int>> -> data<array<2, tuple<int, int>>>>>, %array0 //: !rise.Array<!rise.nat<2>, !rise.int> -> !rise.Array<!rise.nat<2>, !rise.Tuple<!rise.int, !rise.int>>
-        %zippedArrays  = rise.apply %zipWithArray0 : !rise.fun<data<array<2, int>> -> data<array<2, tuple<int, int>>>>, %array1 //: !rise.Array<!rise.nat<2>, !rise.Tuple<!rise.int, !rise.int>>
+        %zipFun = rise.zip #rise.nat<2> #rise.int #rise.int
+        %zipWithArray0 = rise.apply %zipFun : !rise.fun<data<array<2, int>> -> fun<data<array<2, int>> -> data<array<2, tuple<int, int>>>>>, %array0
+        %zippedArrays  = rise.apply %zipWithArray0 : !rise.fun<data<array<2, int>> -> data<array<2, tuple<int, int>>>>, %array1
 
 
 
         "rise.return"() : () -> ()
     }
-    func @rise_map_example() {
-        %array = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
-        %doubleFun = rise.lambda %summand : !rise.int -> !rise.int {
-            %double = rise.addi %summand, %summand
-            rise.return %double : !rise.int
-        }
-        %map10IntsToInts = rise.map #rise.nat<10> #rise.int #rise.int
-        %mapDoubleFun = rise.apply %map10IntsToInts : !rise.fun<fun<data<int> -> data<int>> -> fun<data<array<10, int>> -> data<array<10, int>>>>, %doubleFun
-        %doubledArray = rise.apply %mapDoubleFun : !rise.fun<data<array<10, int>> -> data<array<10, int>>>, %array
+//    func @rise_map_example() {
+//        %array = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
+//        %doubleFun = rise.lambda %summand : !rise.int -> !rise.int {
+//            %double = rise.addi %summand, %summand
+//            rise.return %double : !rise.int
+//        }
+//        %map10IntsToInts = rise.map #rise.nat<10> #rise.int #rise.int
+//        %mapDoubleFun = rise.apply %map10IntsToInts : !rise.fun<fun<data<int> -> data<int>> -> fun<data<array<10, int>> -> data<array<10, int>>>>, %doubleFun
+//        %doubledArray = rise.apply %mapDoubleFun : !rise.fun<data<array<10, int>> -> data<array<10, int>>>, %array
+//
+//        "rise.return"() : () -> ()
+//    }
 
-        "rise.return"() : () -> ()
+//    func @rise_reduce_example() {
+//        %array = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
+//        %addFun = rise.lambda %summand0 : !rise.int -> !rise.fun<int -> int> {
+//            %addWithSummand0 = rise.lambda %summand1 : !rise.int -> !rise.int {
+//                %addition = rise.addi %summand0, %summand1
+//                   rise.return %addition : !rise.int
+//                }
+//            rise.return %addWithSummand0 : !rise.fun<int -> int>
+//        }
+//        %initializer = rise.literal #rise.lit<int<0>>
+//
+//        %reduce10Ints = rise.reduce #rise.nat<10> #rise.int #rise.int
+//        %reduce10IntsAdd = rise.apply %reduce10Ints : !rise.fun<fun<data<int> -> fun<data<int> -> data<int>>> -> fun<data<int> -> fun<data<array<10, int>> -> data<int>>>>, %addFun
+//        %reduce10IntsAddInitialized = rise.apply %reduce10IntsAdd : !rise.fun<data<int> -> fun<data<array<10, int>> -> data<int>>>, %initializer
+//        %result = rise.apply %reduce10IntsAddInitialized : !rise.fun<data<array<10, int>> -> data<int>>, %array
+//
+//
+//        "rise.return"() : () -> ()
+//    }
+
+func @rise_dot_product() {
+    //Arrays
+    %array0 = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
+    %array1 = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
+
+    //Zipping
+    %zipFun = rise.zip #rise.nat<10> #rise.int #rise.int
+    %zipWithArray0 = rise.apply %zipFun : !rise.fun<data<array<10, int>> -> fun<data<array<10, int>> -> data<array<10, tuple<int, int>>>>>, %array0
+    %zippedArrays  = rise.apply %zipWithArray0 : !rise.fun<data<array<10, int>> -> data<array<10, tuple<int, int>>>>, %array1
+
+    //Multiply
+    %tupleMultFun = rise.lambda %tuple : !rise.data<tuple<int, int>> -> !rise.int {
+        %result = rise.tupleMulti %tuple
+        rise.return %result : !rise.int
     }
+    %map10TuplesToInts = rise.map #rise.nat<10> #rise.tuple<int, int> #rise.int
+    %mapMultTuplesFun = rise.apply %map10TuplesToInts : !rise.fun<fun<data<tuple<int, int>> -> data<int>> -> fun<data<array<10, tuple<int, int>>> -> data<array<10, int>>>>, %tupleMultFun
+    %multipliedArray = rise.apply %mapMultTuplesFun : !rise.fun<data<array<10, tuple<int, int>>> -> data<array<10, int>>>, %zippedArrays
 
-    func @rise_reduce_example() {
-        %array = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
-        %addFun = rise.lambda %summand0 : !rise.int -> !rise.fun<int -> int> {
-            %addWithSummand0 = rise.lambda %summand1 : !rise.int -> !rise.int {
-                %addition = rise.addi %summand0, %summand1
-                   rise.return %addition : !rise.int
-                }
-            rise.return %addWithSummand0 : !rise.fun<int -> int>
-        }
-        %initializer = rise.literal #rise.lit<int<0>>
-
-        %reduce10Ints = rise.reduce #rise.nat<10> #rise.int #rise.int
-        %reduce10IntsAdd = rise.apply %reduce10Ints : !rise.fun<fun<data<int> -> fun<data<int> -> data<int>>> -> fun<data<int> -> fun<data<array<10, int>> -> data<int>>>>, %addFun
-        %reduce10IntsAddInitialized = rise.apply %reduce10IntsAdd : !rise.fun<data<int> -> fun<data<array<10, int>> -> data<int>>>, %initializer
-        %result = rise.apply %reduce10IntsAddInitialized : !rise.fun<data<array<10, int>> -> data<int>>, %array
-
-
-        "rise.return"() : () -> ()
-
+    //Addition
+    %addFun = rise.lambda %summand0 : !rise.data<int> -> !rise.fun<data<int> -> data<int>> {
+        %addWithSummand0 = rise.lambda %summand1 : !rise.data<int> -> !rise.data<int> {
+            %addition = rise.addi %summand0, %summand1
+               rise.return %addition : !rise.data<int>
+            }
+        rise.return %addWithSummand0 : !rise.fun<data<int> -> data<int>>
     }
+    %initializer = rise.literal #rise.lit<int<1>>
+    %reduce10Ints = rise.reduce #rise.nat<10> #rise.int #rise.int
+    %reduce10IntsAdd = rise.apply %reduce10Ints : !rise.fun<fun<data<int> -> fun<data<int> -> data<int>>> -> fun<data<int> -> fun<data<array<10, int>> -> data<int>>>>, %addFun
+    %reduce10IntsAddInitialized = rise.apply %reduce10IntsAdd : !rise.fun<data<int> -> fun<data<array<10, int>> -> data<int>>>, %initializer
+    %result = rise.apply %reduce10IntsAddInitialized : !rise.fun<data<array<10, int>> -> data<int>>, %multipliedArray
 
+    rise.return %result : !rise.data<int>
+}
 
 
 ///proposed structure:

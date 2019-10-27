@@ -515,6 +515,24 @@ ParseResult parseZipOp(OpAsmParser &parser, OperationState &result) {
 // Arithmetics
 //===----------------------------------------------------------------------===//
 
+ParseResult parseTupleMultiOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
+
+    OpAsmParser::OperandType tuple;
+    result.setOperandListToResizable();
+
+
+    if (parser.parseOperand(tuple))
+        failure();
+    if (parser.resolveOperand(tuple, DataTypeWrapper::get(builder.getContext(), Tuple::get(builder.getContext(), Int::get(builder.getContext()), Int::get(builder.getContext()))), result.operands))
+        failure();
+
+
+    result.addTypes(Int::get(builder.getContext()));
+
+    return success();
+}
+
 ParseResult parseAddIntOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
@@ -525,12 +543,15 @@ ParseResult parseAddIntOp(OpAsmParser &parser, OperationState &result) {
 
     if (parser.parseOperand(summand0) || parser.parseComma() || parser.parseOperand(summand1))
         failure();
-    if (parser.resolveOperand(summand0, Int::get(builder.getContext()), result.operands))
+//    if (parser.resolveOperand(summand0, Int::get(builder.getContext()), result.operands))
+//        failure();
+//    if (parser.resolveOperand(summand1, Int::get(builder.getContext()), result.operands))
+//        failure();
+    if (parser.resolveOperand(summand0, DataTypeWrapper::get(builder.getContext(), Int::get(builder.getContext())), result.operands))
         failure();
-    if (parser.resolveOperand(summand1, Int::get(builder.getContext()), result.operands))
+    if (parser.resolveOperand(summand1, DataTypeWrapper::get(builder.getContext(), Int::get(builder.getContext())), result.operands))
         failure();
-
-    result.addTypes(Int::get(builder.getContext()));
+    result.addTypes(DataTypeWrapper::get(builder.getContext(), Int::get(builder.getContext())));
 
     return success();
 }

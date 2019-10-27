@@ -303,7 +303,7 @@ mlir::Attribute RiseDialect::parseAttribute(llvm::StringRef attrString,
     if (attrString.startswith("fun") || attrString.startswith("data")) {
         return parseRiseTypeAttribute(attrString, loc);
     }
-    if (attrString.startswith("array") || attrString.startswith("int") || attrString.startswith("float")) {
+    if (attrString.startswith("array") || attrString.startswith("tuple") || attrString.startswith("int") || attrString.startswith("float")) {
         return parseDataTypeAttribute(attrString, loc);
     }
     if (attrString.startswith("nat")) {
@@ -327,6 +327,7 @@ DataTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString,
                                                  mlir::Location loc) const {
     if (attrString.equals("int")) return DataTypeAttr::get(getContext(), Int::get(getContext()));
     if (attrString.equals("float")) return DataTypeAttr::get(getContext(), Float::get(getContext()));
+    if (attrString.startswith("tuple<")) return DataTypeAttr::get(getContext(), parseDataType(attrString, loc));
 
     //TODO: Arrays
     //implement recursive parsing for them.

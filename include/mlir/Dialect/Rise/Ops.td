@@ -204,12 +204,16 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
 //===----------------------------------------------------------------------===//
 // Arithmetic operations
 //===----------------------------------------------------------------------===//
+
+//TODO: discuss how these should look, int -> int -> int or data<int> -> data<int> -> data<int>
 def AddIntOp : Rise_Op<"addi", [NoSideEffect]> {
     let summary = "arithmetic add for ints";
     let description = [{
         }];
-    let arguments = (ins IntType:$summand0, IntType:$summand1);
-    let results = (outs IntType:$result);
+//    let arguments = (ins IntType:$summand0, IntType:$summand1);
+//    let results = (outs IntType:$result);
+    let arguments = (ins DataTypeWrapper:$summand0, DataTypeWrapper:$summand1);
+    let results = (outs DataTypeWrapper:$result);
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 
@@ -219,6 +223,15 @@ def AddFloatOp : Rise_Op<"addf", [NoSideEffect]> {
         }];
     let arguments = (ins FloatType:$summand0, FloatType:$summand1);
     let results = (outs FloatType:$result);
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
+
+def TupleMultiOp : Rise_Op<"tupleMulti", [NoSideEffect]> {
+    let summary = "arithmetic mult for a tuple of ints";
+    let description = [{
+        }];
+    let arguments = (ins DataTypeWrapper:$tuple);
+    let results = (outs IntType:$result);
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 //def ForOp : Loop_Op<"for",
