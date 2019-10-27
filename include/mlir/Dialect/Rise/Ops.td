@@ -160,6 +160,15 @@ def MapOp : Rise_Op<"map", [NoSideEffect]> {
     let results = (outs FunType:$mapFun);
 }
 
+def ReduceOp : Rise_Op<"reduce", [NoSideEffect]> {
+    let summary = "reduce";
+    let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
+    let parser = [{ return parse$cppClass(parser, result); }];
+
+    let results = (outs FunType:$reduceFun);
+
+}
+
 def ZipOp : Rise_Op<"zip", [NoSideEffect]> {
 
     let summary = "rise zip operation";

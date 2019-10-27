@@ -366,6 +366,7 @@ static void print(OpAsmPrinter *p, LiteralOp &op) {
 //===----------------------------------------------------------------------===//
 // Map
 //===----------------------------------------------------------------------===//
+/// (n : nat) → (s t : data) → (exp[s] → exp[t ]) → exp[n.s] → exp[n.t ]
 ParseResult parseMapOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
@@ -391,9 +392,46 @@ ParseResult parseMapOp(OpAsmParser &parser, OperationState &result) {
                                               DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), t.getValue())))));
 
     return success();
-
-
 }
+
+//===----------------------------------------------------------------------===//
+// Reduce
+//===----------------------------------------------------------------------===//
+ParseResult parseReduceOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
+
+    NatAttr n;
+    DataTypeAttr s, t;
+    result.setOperandListToResizable();
+
+    //n - number of elements in Array
+    if (parser.parseAttribute(n, "n", result.attributes))
+        failure();
+
+    //elementType of Array
+    if (parser.parseAttribute(s, "s", result.attributes))
+        failure();
+
+    //resulttype and initializer type
+    if (parser.parseAttribute(t, "t", result.attributes))
+        failure();
+    /// (n : nat) → (s t : data) → (exp[s] → exp[t ] → exp[t ]) → exp[t ] → exp[n.s] → exp[t ]
+
+    result.addTypes(FunType::get(builder.getContext(),
+                                 FunType::get(builder.getContext(),
+                                              DataTypeWrapper::get(builder.getContext(), s.getValue()),
+                                              FunType::get(builder.getContext(),
+                                                           DataTypeWrapper::get(builder.getContext(), t.getValue()),
+                                                           DataTypeWrapper::get(builder.getContext(), t.getValue()))),
+                                 FunType::get(builder.getContext(),
+                                              DataTypeWrapper::get(builder.getContext(), t.getValue()),
+                                              FunType::get(builder.getContext(),
+                                                      DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), s.getValue())),
+                                                      DataTypeWrapper::get(builder.getContext(), t.getValue())))));
+
+    return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Tuples
 //===----------------------------------------------------------------------===//
