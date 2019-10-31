@@ -125,11 +125,9 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
                 pos = oldPos;
                 break;
             }
-            std::cout << "test: " << functionString.substr(oldPos+2,pos-(oldPos+2)) << "\n";
             subString = functionString.substr(oldPos+2,pos-(oldPos+2));
         }
-        std::cout << "full string: " << typeString.str() << "\n";
-        std::cout << "position of -> delimiter: " << std::to_string(pos) << "\n";
+
 
 
 
@@ -137,7 +135,6 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
         StringRef inputDataString, outputDataString;
         inputDataString = typeString.substr(0, pos);
         outputDataString = typeString.substr(pos+2, typeString.npos);
-        std::cout << "strings: " << inputDataString.str() << " and " << outputDataString.str() << "\n\n";
 //        std::tie(inputDataString, outputDataString) = typeString.split("->");
         if (outputDataString.empty()) {
             emitError(loc,

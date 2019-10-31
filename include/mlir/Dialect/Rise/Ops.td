@@ -143,7 +143,7 @@ def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
 
 def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
     let summary = "apply";
-    let arguments = (ins FunType:$fun, AnyType:$input);
+    let arguments = (ins FunType:$fun, Variadic<AnyType>:$inputs);
     let results = (outs AnyType:$result);
     let parser = [{ return parse$cppClass(parser, result); }];
 
@@ -189,6 +189,20 @@ def TupleOp : Rise_Op<"tuple", [NoSideEffect]> {
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 
+def FstOp: Rise_Op<"fst", [NoSideEffect]> {
+    let summary = "rise fst operation";
+    let arguments = (ins DataTypeAttr:$s, DataTypeAttr:$t);
+    let results = (outs FunType:$fstFun);
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
+
+def SndOp: Rise_Op<"snd", [NoSideEffect]> {
+    let summary = "rise snd operation";
+    let arguments = (ins DataTypeAttr:$s, DataTypeAttr:$t);
+    let results = (outs FunType:$sndFun);
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
+
 def ReturnOp : Rise_Op<"return", [Terminator]> {
     let summary = "rise terminator operation";
     let description = [{
@@ -205,35 +219,41 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
 // Arithmetic operations
 //===----------------------------------------------------------------------===//
 
+def AddOp : Rise_Op<"add", [NoSideEffect]> {
+    let summary = "rise add operation";
+    let arguments = (ins DataTypeAttr:$s);
+    let results = (outs FunType:$addFun);
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
+
+def MultOp : Rise_Op<"mult", [NoSideEffect]> {
+    let summary = "rise mult operation";
+    let arguments = (ins DataTypeAttr:$s);
+    let results = (outs FunType:$multFun);
+    let parser = [{ return parse$cppClass(parser, result); }];
+}
+
 //TODO: discuss how these should look, int -> int -> int or data<int> -> data<int> -> data<int>
-def AddIntOp : Rise_Op<"addi", [NoSideEffect]> {
-    let summary = "arithmetic add for ints";
-    let description = [{
-        }];
-//    let arguments = (ins IntType:$summand0, IntType:$summand1);
-//    let results = (outs IntType:$result);
-    let arguments = (ins DataTypeWrapper:$summand0, DataTypeWrapper:$summand1);
-    let results = (outs DataTypeWrapper:$result);
-    let parser = [{ return parse$cppClass(parser, result); }];
-}
+//def AddIntOp : Rise_Op<"addi", [NoSideEffect]> {
+//    let summary = "arithmetic add for ints";
+//    let description = [{
+//        }];
+////    let arguments = (ins IntType:$summand0, IntType:$summand1);
+////    let results = (outs IntType:$result);
+//    let arguments = (ins DataTypeWrapper:$summand0, DataTypeWrapper:$summand1);
+//    let results = (outs DataTypeWrapper:$result);
+//    let parser = [{ return parse$cppClass(parser, result); }];
+//}
+//
+//def AddFloatOp : Rise_Op<"addf", [NoSideEffect]> {
+//    let summary = "arithmetic add for floats";
+//    let description = [{
+//        }];
+//    let arguments = (ins FloatType:$summand0, FloatType:$summand1);
+//    let results = (outs FloatType:$result);
+//    let parser = [{ return parse$cppClass(parser, result); }];
+//}
 
-def AddFloatOp : Rise_Op<"addf", [NoSideEffect]> {
-    let summary = "arithmetic add for floats";
-    let description = [{
-        }];
-    let arguments = (ins FloatType:$summand0, FloatType:$summand1);
-    let results = (outs FloatType:$result);
-    let parser = [{ return parse$cppClass(parser, result); }];
-}
-
-def TupleMultiOp : Rise_Op<"tupleMulti", [NoSideEffect]> {
-    let summary = "arithmetic mult for a tuple of ints";
-    let description = [{
-        }];
-    let arguments = (ins DataTypeWrapper:$tuple);
-    let results = (outs IntType:$result);
-    let parser = [{ return parse$cppClass(parser, result); }];
-}
 //def ForOp : Loop_Op<"for",
 //        [SingleBlockImplicitTerminator<"TerminatorOp">]> {
 //let summary = "for operation";
