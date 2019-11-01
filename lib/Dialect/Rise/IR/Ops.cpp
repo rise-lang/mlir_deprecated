@@ -3,6 +3,8 @@
 //
 #include "mlir/Dialect/Rise/Ops.h"
 
+#include "mlir/Dialect/Rise/Dialect.h"
+
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Support/STLExtras.h"
@@ -38,66 +40,87 @@ namespace rise {
 ParseResult parseLambdaOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
-    OpAsmParser::OperandType lambdaInputVariable;
-    RiseType lambdaInputType;
-    RiseType lambdaOutputType;
+//    OpAsmParser::OperandType lambdaInputVariable;
+    SmallVector<OpAsmParser::OperandType, 10> inputs;
+    SmallVector<Type, 10> inputTypes = SmallVector<Type, 10>();
+    FunType funType;
+//    RiseType lambdaInputType;
+//    RiseType lambdaOutputType;
+
     // Parse the lambdaInput variable
-    if (parser.parseRegionArgument(lambdaInputVariable))
-        return failure();
+//    if (parser.parseRegionArgument(lambdaInputVariable))
+//        return failure();
+    if (parser.parseRegionArgumentList(inputs, OpAsmParser::Delimiter::Paren))
+        failure();
 
     //parse LambdaInputType
-    if (parser.parseColon() || parser.parseType(lambdaInputType))
+    if (parser.parseColon() || parser.parseType(funType))
         return failure();
 
+//    std::cout << "yo: " << RiseDialect::stringForType(funType);
+    ///outsource to its own method
+    inputTypes.push_back(funType.getInput());
+
+    //handle multiple inputs:
+    for (int i = 1; i < inputs.size(); i++) {
+        if (funType.getOutput().isa<FunType>()) {
+            funType = funType.getOutput().dyn_cast<FunType>();
+            inputTypes.push_back(funType.getInput());
+        } else {
+            parser.emitError(parser.getCurrentLocation()) << ": number of arguments: " << std::to_string(i) << " is too high for specified funType";
+            return failure();
+        }
+    }
+
     //parse LambdaOutputType
-    if (parser.parseArrow() || parser.parseType(lambdaOutputType))
-        return failure();
+//    if (parser.parseArrow() || parser.parseType(lambdaOutputType))
+//        return failure();
 
     // Parse the body region.
     Region *body = result.addRegion();
-    if (parser.parseRegion(*body, lambdaInputVariable, lambdaInputType))
+    if (parser.parseRegion(*body, inputs, inputTypes))
         return failure();
     LambdaOp::ensureTerminator(*body, builder, result.location);
 
     // Parse the optional attribute list.
-    if (parser.parseOptionalAttributeDict(result.attributes))
-        return failure();
+//    if (parser.parseOptionalAttributeDict(result.attributes))
+//        return failure();
 
-    RiseType funInput;
-    RiseType funOutput;
+//    RiseType funInput;
+//    RiseType funOutput;
 
     //This seems not like the right way to do this.
-    switch (lambdaInputType.getKind()) {
-        default: {
-            funInput = lambdaInputType;
-            break;
-        }
-        case RiseTypeKind::RISE_INT: {
-            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Int>());
-            break;
-        }
-        case RiseTypeKind::RISE_FLOAT: {
-            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Float>());
-            break;
-        }
-    }
-    switch (lambdaOutputType.getKind()) {
-        default: {
-            funOutput = lambdaOutputType;
-            break;
-        }
-        case RiseTypeKind::RISE_INT: {
-            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Int>());
-            break;
-        }
-        case RiseTypeKind::RISE_FLOAT: {
-            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Float>());
-            break;
-        }
-    }
+//    switch (lambdaInputType.getKind()) {
+//        default: {
+//            funInput = lambdaInputType;
+//            break;
+//        }
+//        case RiseTypeKind::RISE_INT: {
+//            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Int>());
+//            break;
+//        }
+//        case RiseTypeKind::RISE_FLOAT: {
+//            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Float>());
+//            break;
+//        }
+//    }
+//    switch (lambdaOutputType.getKind()) {
+//        default: {
+//            funOutput = lambdaOutputType;
+//            break;
+//        }
+//        case RiseTypeKind::RISE_INT: {
+//            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Int>());
+//            break;
+//        }
+//        case RiseTypeKind::RISE_FLOAT: {
+//            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Float>());
+//            break;
+//        }
+//    }
 
-    FunType type = FunType::get(builder.getContext(), funInput, funOutput);
-    result.addTypes(type);
+//    FunType type = FunType::get(builder.getContext(), funInput, funOutput);
+    result.addTypes(funType);
     return success();
 }
 

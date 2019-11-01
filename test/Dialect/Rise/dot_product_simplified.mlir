@@ -1,5 +1,5 @@
 module {
-func @rise_dot_product() {
+func @rise_dot_product_simplified() {
     //Arrays
     %array0 = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
     %array1 = rise.literal #rise.lit<array<10, !rise.int, [1,2,3,4,5,6,7,8,9,10]>>
