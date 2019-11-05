@@ -131,7 +131,7 @@ func @rise_dot_product() {
 //        !rise.Array<N, DT>
 //        !rise.Tuple<DT, DT>
 //        !rise.natAsData<N>
-//
+    //
 //        // Rise Types: T =
 //        !rise.fun<T, T>
 //        !rise.data<DT>
