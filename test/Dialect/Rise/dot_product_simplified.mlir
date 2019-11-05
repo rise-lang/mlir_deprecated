@@ -9,7 +9,8 @@ func @rise_dot_product_simplified() {
     %zippedArrays = rise.apply %zipFun : !rise.fun<data<array<10, int>> -> fun<data<array<10, int>> -> data<array<10, tuple<int, int>>>>>, %array0, %array1
 
     //Multiply
-    %tupleMultFun = rise.lambda (%tuple) : !rise.fun<data<tuple<int, int>> -> !rise.data<int>> {
+
+    %tupleMultFun = rise.lambda (%tuple) : !rise.fun<data<tuple<int, int>> -> data<int>> {
         %fstFun = rise.fst #rise.int #rise.int
         %sndFun = rise.snd #rise.int #rise.int
 
