@@ -325,9 +325,7 @@ DataTypeAttr RiseDialect::parseDataTypeAttribute(StringRef attrString,
     if (attrString.equals("int")) return DataTypeAttr::get(getContext(), Int::get(getContext()));
     if (attrString.equals("float")) return DataTypeAttr::get(getContext(), Float::get(getContext()));
     if (attrString.startswith("tuple<")) return DataTypeAttr::get(getContext(), parseDataType(attrString, loc));
-
-    //TODO: Arrays
-    //implement recursive parsing for them.
+    if (attrString.startswith("array<")) return DataTypeAttr::get(getContext(), parseDataType(attrString, loc));
     return nullptr;
 }
 
@@ -365,10 +363,9 @@ DataType static getArrayStructure(mlir::MLIRContext *context, StringRef structur
 
 
 
-///Format:
-///         rise.literal #rise.int<42>
-///         rise.literal #rise.array<2, rise.int, [1,2]>
-///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
+///New proposed structure: separate type from the literal value more strictly.
+///         rise.literal #rise.lit<int, 42>
+///         rise.literal #rise.lit<array<2, array<2, int>>, [[1,2],[3,4]]
 LiteralAttr RiseDialect::parseLiteralAttribute(StringRef attrString, mlir::Location loc) const {
 
     if (!attrString.consume_front("lit<") || !attrString.consume_back(">")) {
