@@ -43,8 +43,16 @@ operations. This gives DRR both its strengths and limitations: it is good at
 expressing op to op conversions, but not that well suited for, say, converting
 an op into a loop nest.
 
-Per the current implementation, DRR also does not have good support for regions
-in general.
+Per the current implementation, DRR does not have good support for the following
+features:
+
+*   Matching and generating ops with regions.
+*   Matching and generating ops with block arguments.
+*   Matching multi-result ops in nested patterns.
+*   Matching and generating variadic operand/result ops in nested patterns.
+*   Packing and unpacking variaidc operands/results during generation.
+*   [`NativeCodeCall`](#native-code-call-transforming-the-generated-op)
+    returning more than one results.
 
 ## Rule Definition
 
@@ -345,6 +353,9 @@ template. The string can be an arbitrary C++ expression that evaluates into
 some C++ object expected at the `NativeCodeCall` site (here it would be
 expecting an array attribute). Typically the string should be a function call.
 
+Note that currently `NativeCodeCall` must return no more than one value or
+attribute. This might change in the future.
+
 ##### `NativeCodeCall` placeholders
 
 In `NativeCodeCall`, we can use placeholders like `$_builder`, `$N`. The former
@@ -628,6 +639,24 @@ pattern's benefit. Just supply `(addBenefit N)` to add `N` to the benefit value.
 ## Special directives
 
 [TODO]
+
+## Debugging Tips
+
+### Run `mlir-tblgen` to see the generated content
+
+TableGen syntax sometimes can be obscure; reading the generated content can be
+a very helpful way to understand and debug issues. To build `mlir-tblgen`, run
+`cmake --build . --target mlir-tblgen` in your build directory and find the
+`mlir-tblgen` binary in the `bin/` subdirectory. All the supported generators
+can be found via `mlir-tblgen --help`.
+
+To see the generated code, invoke `mlir-tblgen` with a specific generator by
+providing include paths via `-I`. For example,
+
+```sh
+# To see all the C++ pattern rewrite classes
+mlir-tblgen --gen-rewriters -I /path/to/mlir/include /path/to/input/td/file
+```
 
 [TableGen]: https://llvm.org/docs/TableGen/index.html
 [OpBase]: https://github.com/tensorflow/mlir/blob/master/include/mlir/IR/OpBase.td

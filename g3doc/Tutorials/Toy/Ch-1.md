@@ -1,11 +1,15 @@
 # Chapter 1: Toy Tutorial Introduction
 
+[TOC]
+
 This tutorial runs through the implementation of a basic toy language on top of
 MLIR. The goal of this tutorial is to introduce the concepts of MLIR, and
 especially how *dialects* can help easily support language specific constructs
 and transformations, while still offering an easy path to lower to LLVM or other
 codegen infrastructure. This tutorial is based on the model of the
 [LLVM Kaleidoscope Tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html).
+
+## The Chapters
 
 This tutorial is divided in the following chapters:
 
@@ -25,6 +29,9 @@ This tutorial is divided in the following chapters:
 -   [Chapter #6](Ch-6.md): Lowering to LLVM and code generation. Here we'll
     target LLVM IR for code generation, and detail more of the lowering
     framework.
+-   [Chapter #7](Ch-7.md): Extending Toy: Adding support for a composite type.
+    We'll demonstrate how to add a custom type to MLIR, and how it fits in the
+    existing pipeline.
 
 ## The Language
 
@@ -87,7 +94,7 @@ def main() {
 
   # Finally, calling into `multiply_transpose` with incompatible shape will
   # trigger a shape inference error.
-  var e = multiply_transpose(transpose(a), c);
+  var f = multiply_transpose(transpose(a), c);
 }
 ```
 
