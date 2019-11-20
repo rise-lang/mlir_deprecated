@@ -50,6 +50,8 @@ public:
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_BASETYPE; }
     static bool hasBaseType(unsigned kind) { return kind == RiseTypeKind::RISE_BASETYPE; }
+    ///TODO: look at tensorflow dialect in tf_types.h  the classof metos does this much more elegant
+
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for

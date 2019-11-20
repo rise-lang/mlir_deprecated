@@ -1,5 +1,3 @@
-module {
-func @mm() {
     // Matrices
     %A = rise.literal #rise.lit<array<4.4, !rise.int, [[1,2,3,4], [5,6,7,8], [9,10,11,12], [13,14,15,16]]>>
     %B = rise.literal #rise.lit<array<4.4, !rise.int, [[1,2,3,4], [5,6,7,8], [9,10,11,12], [13,14,15,16]]>>
@@ -31,6 +29,7 @@ func @mm() {
             %addFun = rise.add #rise.int
             %initializer = rise.literal #rise.lit<int<0>>
             %reduce10Ints = rise.reduce #rise.nat<4> #rise.int #rise.int
+            %reduce10Ints2 = rise.reduce #rise.nat<4> #rise.int #rise.float
             %result = rise.apply %reduce10Ints : !rise.fun<fun<data<int> -> fun<data<int> -> data<int>>> -> fun<data<int> -> fun<data<array<4, int>> -> data<int>>>>, %addFun, %initializer, %multipliedArray
 
             rise.return %result : !rise.data<int>
@@ -42,6 +41,4 @@ func @mm() {
     }
     %m1 = rise.map #rise.nat<4> #rise.array<4, !rise.int> #rise.array<4, !rise.int>
     %result = rise.apply %m1: !rise.fun<fun<data<array<4, int>> -> data<array<4, int>>> -> fun<data<array<4, array<4, int>>> -> data<array<4, array<4, int>>>>>, %m1fun, %A
-    rise.return %result : !rise.data<array<4, array<4, int>>>
-}
-}
+//    rise.return %result : !rise.data<array<4, array<4, int>>>

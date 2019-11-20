@@ -319,11 +319,11 @@ ParseResult parseApplyOp(OpAsmParser &parser, OperationState &result) {
     //    Value()
     //    result.addOperands(funOperand);
 
-    //parse inputs
+    //parse arguments
     if (parser.parseTrailingOperandList(inputs))
         failure();
 
-    //one input is always needed
+    //one argument is always needed
     inputTypes.push_back(funType.getInput());
 
     //handle multiple inputs:

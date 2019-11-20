@@ -36,7 +36,7 @@ let cppNamespace = "";
 // Base class for Rise dialect ops.
 class Rise_Op<string mnemonic, list<OpTrait> traits = []> :
 Op<Rise_Dialect, mnemonic, traits> {
-// For every standard op, there needs to be a:
+// For every rise op, there needs to be a:
 //   * void print(OpAsmPrinter *p, ${C++ class of Op} op)
 //   * LogicalResult verify(${C++ class of Op} op)
 //   * ParseResult parse${C++ class of Op}(OpAsmParser *parser,
@@ -47,13 +47,6 @@ Op<Rise_Dialect, mnemonic, traits> {
 //let parser = [{ return ::parse$cppClass(parser, result); }];
 }
 
-//// No custom parsing/printing form.
-////let parser = ?;
-////let printer = ?;
-////
-////// Fully specified by traits.
-////let verifier = ?;
-//}
 
 ///Types
 def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
@@ -63,14 +56,11 @@ def FloatType : Type<CPred<"$_self.isa<Float>()">, "float type">;
 def TupleType : Type<CPred<"$_self.isa<Tuple>()">, "tuple type">;
 def ArrayType : Type<CPred<"$_self.isa<ArrayType>()">, "array type">;
 def DataType : Type<Or<[IntType.predicate, FloatType.predicate, TupleType.predicate, ArrayType.predicate]>>;
-
-
 def NatOrDataType : Type<Or<[NatType.predicate, DataType.predicate]>>;
 
 def FunType : Type<CPred<"$_self.isa<FunType>()">, "fun type">;
 def DataTypeWrapper : Type<CPred<"$_self.isa<DataTypeWrapper>()">, "data fun type">;
 def RiseType : Type<Or<[FunType.predicate, DataTypeWrapper.predicate]>>;
-
 
 def LambdaType : Type<CPred<"$_self.isa<LambdaType>()">, "lambda type">;
 //def KindType : Type<CPred<"$_self.isa<Kind>()">, "kind type">;
@@ -96,31 +86,15 @@ def NatAttr : Attr<CPred<"$_self.isa<NatAttr>()">,
 
 def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
     let summary = "literal";
-
     let arguments = (ins AnyAttr:$literalValue);
     let results = (outs RiseType);
-
-//    let builders = [OpBuilder<
-//          "Builder *builder, OperationState *result, Attribute value",
-//        [{ build(builder, result, value.getType(), value); }]>];
-
     let extraClassDeclaration = [{Attribute getValue() { return getAttr("value"); }
         /// Returns true if a constant operation can be built with the given value
         /// and result type.
         static bool isBuildableWith(Attribute value, mlir::Type type);
     }];
     let parser = [{ return parse$cppClass(parser, result); }];
-//    let hasFolder = 1;
 }
-
-//def ArrayOp : Rise_Op<"array", [NoSideEffect]> {
-//    let summary = "array";
-//
-//    let arguments = (ins APIntAttr:$size, RiseTypeAttr:$elementType);
-//    let results = (outs ArrayType);
-//
-//    let parser = [{ return parse$cppClass(parser, result); }];
-//}
 
 def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let summary = "lambda";
@@ -130,15 +104,6 @@ def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let results = (outs FunType:$lambda_result);
 
     let parser = [{ return parse$cppClass(parser, result); }];
-//    let verifier = [{ return verify$cppClass(verifier, result); }];
-
-//    let skipDefaultBuilders = 1;
-//    let builders = [OpBuilder<
-//        "Builder *, OperationState *result,"
-//        "Type lambda_result", [{
-//        result->addRegion();
-//        result->addTypes(lambda_result.cast<FunctionType>());
-//    }]>];
 }
 
 def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
@@ -146,10 +111,6 @@ def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
     let arguments = (ins FunType:$fun, Variadic<AnyType>:$inputs);
     let results = (outs AnyType:$result);
     let parser = [{ return parse$cppClass(parser, result); }];
-
-//    let builders = [OpBuilder<
-//        "Builder *b, OperationState *result", [{ build(b, result, llvm::None); }]
-//    >];
 }
 
 def MapOp : Rise_Op<"map", [NoSideEffect]> {
@@ -166,20 +127,15 @@ def ReduceOp : Rise_Op<"reduce", [NoSideEffect]> {
     let parser = [{ return parse$cppClass(parser, result); }];
 
     let results = (outs FunType:$reduceFun);
-
 }
 
 def ZipOp : Rise_Op<"zip", [NoSideEffect]> {
-
     let summary = "rise zip operation";
     let description = [{
         }];
     let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
-    //                  was NatAttr, but for some reason constraint failed with proper nats
     let parser = [{ return parse$cppClass(parser, result); }];
-
     let results = (outs FunType:$zipFun);
-
 }
 
 def TupleOp : Rise_Op<"tuple", [NoSideEffect]> {
@@ -209,7 +165,6 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
         }];
     let arguments = (ins Variadic<AnyType>:$operands);
     let parser = [{ return parse$cppClass(parser, result); }];
-
     let builders = [OpBuilder<
         "Builder *b, OperationState &result", [{ build(b, result, llvm::None); }]
         >];
@@ -232,134 +187,5 @@ def MultOp : Rise_Op<"mult", [NoSideEffect]> {
     let results = (outs FunType:$multFun);
     let parser = [{ return parse$cppClass(parser, result); }];
 }
-
-//TODO: discuss how these should look, int -> int -> int or data<int> -> data<int> -> data<int>
-//def AddIntOp : Rise_Op<"addi", [NoSideEffect]> {
-//    let summary = "arithmetic add for ints";
-//    let description = [{
-//        }];
-////    let arguments = (ins IntType:$summand0, IntType:$summand1);
-////    let results = (outs IntType:$result);
-//    let arguments = (ins DataTypeWrapper:$summand0, DataTypeWrapper:$summand1);
-//    let results = (outs DataTypeWrapper:$result);
-//    let parser = [{ return parse$cppClass(parser, result); }];
-//}
-//
-//def AddFloatOp : Rise_Op<"addf", [NoSideEffect]> {
-//    let summary = "arithmetic add for floats";
-//    let description = [{
-//        }];
-//    let arguments = (ins FloatType:$summand0, FloatType:$summand1);
-//    let results = (outs FloatType:$result);
-//    let parser = [{ return parse$cppClass(parser, result); }];
-//}
-
-//def ForOp : Loop_Op<"for",
-//        [SingleBlockImplicitTerminator<"TerminatorOp">]> {
-//let summary = "for operation";
-//let description = [{
-//        The "loop.for" operation represents a loop nest taking 3 SSA value as
-//        operands that represent the lower bound, upper bound and step respectively.
-//        The operation defines an SSA value for its induction variable. It has one
-//        region capturing the loop body. The induction variable is represented as an
-//        argument of this region. This SSA value always has type index, which is the
-//        size of the machine word. The step is a value of type index, required to be
-//        positive.
-//        The lower and upper bounds specify a half-open range: the range includes the
-//        lower bound but does not include the upper bound.
-//
-//        The body region must contain exactly one block that terminates with
-//        "loop.terminator".  Calling ForOp::build will create such region and insert
-//        the terminator, so will the parsing even in cases when it is absent from the
-//        custom format. For example:
-//
-//        loop.for %iv = %lb to %ub step %step {
-//            ... // body
-//        }
-//}];
-//let arguments = (ins Index:$lowerBound, Index:$upperBound, Index:$step);
-//let regions = (region SizedRegion<1>:$region);
-//
-//let skipDefaultBuilders = 1;
-//let builders = [
-//        OpBuilder<"Builder *builder, OperationState *result, "
-//                  "Value *lowerBound, Value *upperBound, Value *step">
-//];
-//
-//let extraClassDeclaration = [{
-//        Block *getBody() { return &region().front(); }
-//        Value *getInductionVar() { return getBody()->getArgument(0); }
-//        OpBuilder getBodyBuilder() {
-//            return OpBuilder(getBody(), std::prev(getBody()->end()));
-//        }
-//        void setLowerBound(Value *bound) { getOperation()->setOperand(0, bound); }
-//        void setUpperBound(Value *bound) { getOperation()->setOperand(1, bound); }
-//        void setStep(Value *step) { getOperation()->setOperand(2, step); }
-//}];
-//}
-//
-//def IfOp : Loop_Op<"if",
-//        [SingleBlockImplicitTerminator<"TerminatorOp">]> {
-//let summary = "if-then-else operation";
-//let description = [{
-//        The "loop.if" operation represents an if-then-else construct for
-//        conditionally executing two regions of code. The operand to an if operation
-//        is a boolean value. The operation produces no results. For example:
-//
-//        loop.if %b  {
-//            ...
-//        } else {
-//            ...
-//        }
-//
-//        The 'else' block is optional, and may be omitted. For
-//        example:
-//
-//        loop.if %b  {
-//            ...
-//        }
-//}];
-//let arguments = (ins I1:$condition);
-//let regions = (region SizedRegion<1>:$thenRegion, AnyRegion:$elseRegion);
-//
-//let skipDefaultBuilders = 1;
-//let builders = [
-//        OpBuilder<"Builder *builder, OperationState *result, "
-//                  "Value *cond, bool withElseRegion">
-//];
-//
-//let extraClassDeclaration = [{
-//        OpBuilder getThenBodyBuilder() {
-//            assert(!thenRegion().empty() && "Unexpected empty 'then' region.");
-//            Block &body = thenRegion().front();
-//            return OpBuilder(&body, std::prev(body.end()));
-//        }
-//        OpBuilder getElseBodyBuilder() {
-//            assert(!elseRegion().empty() && "Unexpected empty 'else' region.");
-//            Block &body = elseRegion().front();
-//            return OpBuilder(&body, std::prev(body.end()));
-//        }
-//}];
-//}
-//
-//def TerminatorOp :
-//Loop_Op<"terminator", [NativeOpTrait<"IsTerminator">]> {
-//let summary = "cf terminator operation";
-//let description = [{
-//        "loop.terminator" is a special terminator operation for blocks inside
-//        loops. It terminates the region. This operation does _not_ have a custom
-//        syntax. However, `std` control operations omit the terminator in their
-//        custom syntax for brevity.
-//
-//        loop.terminator
-//}];
-//
-//// No custom parsing/printing form.
-//let parser = ?;
-//let printer = ?;
-//
-//// Fully specified by traits.
-//let verifier = ?;
-//}
 
 #endif // RISE_OPS
