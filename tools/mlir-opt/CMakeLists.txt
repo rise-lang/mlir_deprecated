@@ -49,14 +49,14 @@ set(LIBS
   MLIRTestTransforms
   MLIRSupport
   MLIRVectorOps
-  MLIRVectorToLLVM
+  MLIRVectorConversions
 )
 if(MLIR_CUDA_CONVERSIONS_ENABLED)
   list(APPEND LIBS
     MLIRGPUtoCUDATransforms
   )
 endif()
-add_llvm_executable(mlir-opt
+add_llvm_tool(mlir-opt
  mlir-opt.cpp
 )
 llvm_update_compile_flags(mlir-opt)

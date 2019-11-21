@@ -40,7 +40,7 @@ func @launch() {
 // CHECK-LABEL: module @launch_kernel
 // CHECK-NEXT: func @launch_kernel
 // CHECK-SAME: (%[[KERNEL_ARG0:.*]]: f32, %[[KERNEL_ARG1:.*]]: memref<?xf32, 1>)
-// CHECK-NEXT: attributes {gpu.kernel}
+// CHECK:      attributes {gpu.kernel}
 // CHECK-NEXT: %[[BID:.*]] = "gpu.block_id"() {dimension = "x"} : () -> index
 // CHECK-NEXT: = "gpu.block_id"() {dimension = "y"} : () -> index
 // CHECK-NEXT: = "gpu.block_id"() {dimension = "z"} : () -> index
@@ -92,7 +92,7 @@ func @extra_constants(%arg0 : memref<?xf32>) {
   // CHECK: %[[CST:.*]] = constant 8 : index
   %cst = constant 8 : index
   %cst2 = constant 2 : index
-  %cst3 = constant 3 : index
+  %cst3 = dim %arg0, 0 : memref<?xf32>
   // CHECK: "gpu.launch_func"(%[[CST]], %[[CST]], %[[CST]], %[[CST]], %[[CST]], %[[CST]], %{{.*}}) {kernel = "extra_constants_kernel", kernel_module = @extra_constants_kernel} : (index, index, index, index, index, index, memref<?xf32>) -> ()
   gpu.launch blocks(%bx, %by, %bz) in (%grid_x = %cst, %grid_y = %cst,
                                        %grid_z = %cst)
