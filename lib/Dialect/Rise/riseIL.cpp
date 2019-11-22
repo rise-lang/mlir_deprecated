@@ -77,7 +77,7 @@ std::unique_ptr<rise::ModuleAST> parseInputFile(llvm::StringRef filename) {
 
 int dumpMLIR() {
   // Register our Dialect with MLIR
-  mlir::registerDialect<mlir::rise::RiseDialect>();
+//  mlir::registerDialect<mlir::rise::RiseDialect>();
   mlir::MLIRContext context;
   mlir::OwningModuleRef module;
   if (inputType == InputType::MLIR ||

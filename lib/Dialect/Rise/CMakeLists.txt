@@ -13,6 +13,7 @@ target_link_libraries(RISE LLVMSupport)
 
 add_llvm_example(riseIL
         riseIL.cpp
+        RiseRegistration.cpp
         IR/AST.cpp
         IR/RiseDialect.cpp
         IR/MLIRGen.cpp
