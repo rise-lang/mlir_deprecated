@@ -26,6 +26,7 @@
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/StandardTypes.h"
+#include "mlir/IR/DialectImplementation.h"
 #include "mlir/Support/STLExtras.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -79,7 +80,9 @@ RiseDialect::RiseDialect(mlir::MLIRContext *ctx) : mlir::Dialect("rise", ctx) {
 //    return LambdaType::get(getContext(), Nat::get(getContext()), Nat::get(getContext()));
 //}
 /// Parse a type registered to this dialect
-mlir::Type RiseDialect::parseType(StringRef typeString, mlir::Location loc) const {
+mlir::Type RiseDialect::parseType(DialectAsmParser &parser) const {
+    StringRef typeString = parser.getFullSymbolSpec();
+    Location loc = parser.getEncodedSourceLoc(parser.getCurrentLocation());
 
     if (typeString.startswith("!rise.")) typeString.consume_front("!rise.");
 
@@ -283,7 +286,8 @@ std::string static stringForType(Type type) {
 }
 
 /// Print a Rise type
-void RiseDialect::printType(mlir::Type type, raw_ostream &os) const {
+void RiseDialect::printType(mlir::Type type, DialectAsmPrinter &printer) const {
+    raw_ostream &os = printer.getStream();
     os << stringForType(type);
 }
 
@@ -291,8 +295,9 @@ void RiseDialect::printType(mlir::Type type, raw_ostream &os) const {
 ///         rise.literal #rise.int<42>
 ///         rise.literal #rise.array<2, rise.int, [1,2]>
 ///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
-mlir::Attribute RiseDialect::parseAttribute(llvm::StringRef attrString,
-        mlir::Type type, mlir::Location loc) const {
+mlir::Attribute RiseDialect::parseAttribute(DialectAsmParser &parser, Type type) const {
+    StringRef attrString = parser.getFullSymbolSpec();
+    Location loc = parser.getEncodedSourceLoc(parser.getCurrentLocation());
     //we only have RiseTypeAttribute
     if (attrString.startswith("lit<")) {
         return parseLiteralAttribute(attrString, loc);
@@ -471,62 +476,12 @@ std::string static stringForAttribute(Attribute attribute) {
     }
 }
 
-void RiseDialect::printAttribute(Attribute attribute, raw_ostream &os) const {
+void RiseDialect::printAttribute(Attribute attribute, DialectAsmPrinter &printer) const {
+    raw_ostream &os = printer.getStream();
     os << stringForAttribute(attribute);
     return ;
-
-    switch (attribute.getKind()) {
-        default: {
-            os << "unknown rise attribute";
-            return;
-        }
-        case RiseAttributeKind::LITERAL_ATTR: {
-            switch (attribute.dyn_cast<LiteralAttr>().getType().getKind()) {
-                default: {
-                    os << "unknown rise type";
-                    return;
-                }
-                case RiseTypeKind::RISE_INT: {
-                    os << "lit<int<" << attribute.dyn_cast<LiteralAttr>().getValue() << ">>";
-                    return;
-                }
-                case RiseTypeKind::RISE_FLOAT: {
-                    os << "lit<float>";
-                    return;
-                }
-                case RiseTypeKind::RISE_NAT: {
-                    os << "lat<nat>";
-                    return;
-                }
-                case RiseTypeKind::RISE_ARRAY: {
-                    os << "lit<array<" << attribute.dyn_cast<LiteralAttr>().getValue()
-//                       << ", " << attribute.dyn_cast<LiteralAttr>().getType().dyn_cast<ArrayType>().getElementType()
-                       << ">>";
-                    return;
-                }
-                case RiseTypeKind::RISE_FUNTYPE: {
-                    os << "lit<fun>"; //not final
-                    return;
-                }
-            }
-        }
-        case RiseAttributeKind::NAT_ATTR: {
-            os << "nat<" << attribute.dyn_cast<NatAttr>().getValue() << ">";
-            return;
-        }
-        case RiseAttributeKind::DATATYPE_ATTR: {
-            //switch statement does not work at all
-            //or parsing of zip
-            //TODO: important
-            //for some reason this cast fails
-            //yes no, its clear. for some Reason the NatAttr ends up here
-            os << "data<" << attribute.dyn_cast<DataTypeAttr>().getValue() << ">";
-//            os << "data<>";
-
-            return;
-        }
-    }
 }
+
 
 } //end namespace rise
 } //end namespace mlir

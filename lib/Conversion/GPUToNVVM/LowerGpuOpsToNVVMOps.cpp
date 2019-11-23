@@ -30,6 +30,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 #include "../GPUCommon/IndexIntrinsicsOpLowering.h"
+#include "../GPUCommon/OpToFuncCallLowering.h"
 
 using namespace mlir;
 
@@ -479,9 +480,11 @@ public:
         GPUIndexIntrinsicOpLowering<gpu::GridDimOp, NVVM::GridDimXOp,
                                     NVVM::GridDimYOp, NVVM::GridDimZOp>,
         GPUAllReduceOpLowering>(converter);
-
+    patterns.insert<OpToFuncCallLowering<ExpOp>>(converter, "__nv_expf",
+                                                 "__nv_exp");
     ConversionTarget target(getContext());
     target.addIllegalDialect<gpu::GPUDialect>();
+    target.addIllegalOp<LLVM::ExpOp>();
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalDialect<NVVM::NVVMDialect>();
     // TODO(csigg): Remove once we support replacing non-root ops.
@@ -498,5 +501,4 @@ std::unique_ptr<OpPassBase<ModuleOp>> mlir::createLowerGpuOpsToNVVMOpsPass() {
 }
 
 static PassRegistration<LowerGpuOpsToNVVMOpsPass>
-    pass("lower-gpu-ops-to-nvvm-ops",
-         "Generate NVVM operations for gpu operations");
+    pass("convert-gpu-to-nvvm", "Generate NVVM operations for gpu operations");

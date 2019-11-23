@@ -1,4 +1,62 @@
-// RUN: mlir-opt %s -split-input-file -canonicalize | FileCheck %s
+// RUN: mlir-opt %s -split-input-file -pass-pipeline='func(canonicalize)' | FileCheck %s
+
+//===----------------------------------------------------------------------===//
+// spv.AccsessChain
+//===----------------------------------------------------------------------===//
+
+func @combine_full_access_chain() -> f32 {
+  // CHECK: %[[INDEX:.*]] = spv.constant 0
+  // CHECK-NEXT: %[[VAR:.*]] = spv.Variable
+  // CHECK-NEXT: %[[PTR:.*]] = spv.AccessChain %[[VAR]][%[[INDEX]], %[[INDEX]], %[[INDEX]]]
+  // CHECK-NEXT: spv.Load "Function" %[[PTR]]
+  %c0 = spv.constant 0: i32
+  %0 = spv.Variable : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %1 = spv.AccessChain %0[%c0] : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %2 = spv.AccessChain %1[%c0, %c0] : !spv.ptr<!spv.array<4x!spv.array<4xf32>>, Function>
+  %3 = spv.Load "Function" %2 : f32
+  spv.ReturnValue %3 : f32
+}
+
+// -----
+
+func @combine_access_chain_multi_use() -> !spv.array<4xf32> {
+  // CHECK: %[[INDEX:.*]] = spv.constant 0
+  // CHECK-NEXT: %[[VAR:.*]] = spv.Variable
+  // CHECK-NEXT: %[[PTR_0:.*]] = spv.AccessChain %[[VAR]][%[[INDEX]], %[[INDEX]]]
+  // CHECK-NEXT: %[[PTR_1:.*]] = spv.AccessChain %[[VAR]][%[[INDEX]], %[[INDEX]], %[[INDEX]]]
+  // CHECK-NEXT: spv.Load "Function" %[[PTR_0]]
+  // CHECK-NEXT: spv.Load "Function" %[[PTR_1]]
+  %c0 = spv.constant 0: i32
+  %0 = spv.Variable : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %1 = spv.AccessChain %0[%c0] : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %2 = spv.AccessChain %1[%c0] : !spv.ptr<!spv.array<4x!spv.array<4xf32>>, Function>
+  %3 = spv.AccessChain %2[%c0] : !spv.ptr<!spv.array<4xf32>, Function>
+  %4 = spv.Load "Function" %2 : !spv.array<4xf32>
+  %5 = spv.Load "Function" %3 : f32
+  spv.ReturnValue %4: !spv.array<4xf32>
+}
+
+// -----
+
+func @dont_combine_access_chain_without_common_base() -> !spv.array<4xi32> {
+  // CHECK: %[[INDEX:.*]] = spv.constant 1
+  // CHECK-NEXT: %[[VAR_0:.*]] = spv.Variable
+  // CHECK-NEXT: %[[VAR_1:.*]] = spv.Variable
+  // CHECK-NEXT: %[[VAR_0_PTR:.*]] = spv.AccessChain %[[VAR_0]][%[[INDEX]]]
+  // CHECK-NEXT: %[[VAR_1_PTR:.*]] = spv.AccessChain %[[VAR_1]][%[[INDEX]]]
+  // CHECK-NEXT: spv.Load "Function" %[[VAR_0_PTR]]
+  // CHECK-NEXT: spv.Load "Function" %[[VAR_1_PTR]]
+  %c1 = spv.constant 1: i32
+  %0 = spv.Variable : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %1 = spv.Variable : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %2 = spv.AccessChain %0[%c1] : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %3 = spv.AccessChain %1[%c1] : !spv.ptr<!spv.struct<!spv.array<4x!spv.array<4xf32>>, !spv.array<4xi32>>, Function>
+  %4 = spv.Load "Function" %2 : !spv.array<4xi32>
+  %5 = spv.Load "Function" %3 : !spv.array<4xi32>
+  spv.ReturnValue %4 : !spv.array<4xi32>
+}
+
+// -----
 
 //===----------------------------------------------------------------------===//
 // spv.CompositeExtract
@@ -72,6 +130,34 @@ func @deduplicate_composite_constant() -> (!spv.array<1 x vector<2xi32>>, !spv.a
   %1 = spv.constant [dense<5> : vector<2xi32>] : !spv.array<1 x vector<2xi32>>
   // CHECK-NEXT: return %[[CST]], %[[CST]]
   return %0, %1 : !spv.array<1 x vector<2xi32>>, !spv.array<1 x vector<2xi32>>
+}
+
+// -----
+
+//===----------------------------------------------------------------------===//
+// spv.Bitcast
+//===----------------------------------------------------------------------===//
+
+func @convert_bitcast_full(%arg0 : vector<2xf32>) -> f64 {
+  // CHECK: %[[RESULT:.*]] = spv.Bitcast {{%.*}} : vector<2xf32> to f64
+  // CHECK-NEXT: spv.ReturnValue %[[RESULT]]
+  %0 = spv.Bitcast %arg0 : vector<2xf32> to vector<2xi32>
+  %1 = spv.Bitcast %0 : vector<2xi32> to i64
+  %2 = spv.Bitcast %1 : i64 to f64
+  spv.ReturnValue %2 : f64
+}
+
+// -----
+
+func @convert_bitcast_multi_use(%arg0 : vector<2xf32>, %arg1 : !spv.ptr<i64, Uniform>) -> f64 {
+  // CHECK: %[[RESULT_0:.*]] = spv.Bitcast {{%.*}} : vector<2xf32> to i64
+  // CHECK-NEXT: %[[RESULT_1:.*]] = spv.Bitcast {{%.*}} : vector<2xf32> to f64
+  // CHECK-NEXT: spv.Store {{".*"}} {{%.*}}, %[[RESULT_0]]
+  // CHECK-NEXT: spv.ReturnValue %[[RESULT_1]]
+  %0 = spv.Bitcast %arg0 : vector<2xf32> to i64
+  %1 = spv.Bitcast %0 : i64 to f64
+  spv.Store "Uniform" %arg1, %0 : i64
+  spv.ReturnValue %1 : f64
 }
 
 // -----

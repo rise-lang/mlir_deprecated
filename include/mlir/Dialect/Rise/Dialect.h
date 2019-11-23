@@ -24,11 +24,13 @@
 #define MLIR_TUTORIAL_RISE_DIALECT_H_
 
 #include "mlir/IR/Dialect.h"
+
 #include "mlir/IR/Function.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeSupport.h"
 #include "mlir/IR/Types.h"
+#include "mlir/Parser.h"
 
 #include "mlir/Dialect/Rise/Types.h"
 #include "mlir/Dialect/Rise/Ops.h"
@@ -52,8 +54,7 @@ public:
     /// Parse a type registered to this dialect. Overridding this method is
     /// required for dialects that have custom types.
     /// Technically this is only needed to be able to round-trip to textual IR.
-    mlir::Type parseType(llvm::StringRef tyData,
-                         mlir::Location loc) const override;
+    mlir::Type parseType(DialectAsmParser &parser) const override;
 
     RiseType parseRiseType(StringRef typeString,
             mlir::Location loc) const;
@@ -67,11 +68,10 @@ public:
         /// Print a type registered to this dialect. Overridding this method is
     /// only required for dialects that have custom types.
     /// Technically this is only needed to be able to round-trip to textual IR.
-    void printType(mlir::Type type, llvm::raw_ostream &os) const override;
+    void printType(mlir::Type type, DialectAsmPrinter &) const override;
 
 
-    mlir::Attribute parseAttribute(llvm::StringRef attrData,
-            mlir::Type type, mlir::Location loc) const override;
+    mlir::Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
 
     LiteralAttr parseLiteralAttribute(StringRef attrString,
             mlir::Location loc) const;
@@ -87,7 +87,7 @@ public:
     /// Print an attribute registered to this dialect. Note: The type of the
     /// attribute need not be printed by this method as it is always printed by
     /// the caller.
-    void printAttribute(Attribute attribute, raw_ostream &os) const override;
+    void printAttribute(Attribute, DialectAsmPrinter &) const override;
 };
 
 } //end namespace rise

@@ -66,6 +66,7 @@ public:
 
   /// Utilities to identify types.
   bool isFloatTy() { return getUnderlyingType()->isFloatTy(); }
+  bool isDoubleTy() { return getUnderlyingType()->isDoubleTy(); }
   bool isIntegerTy() { return getUnderlyingType()->isIntegerTy(); }
   bool isIntegerTy(unsigned bitwidth) {
     return getUnderlyingType()->isIntegerTy(bitwidth);
@@ -172,10 +173,10 @@ public:
   llvm::Module &getLLVMModule();
 
   /// Parse a type registered to this dialect.
-  Type parseType(StringRef tyData, Location loc) const override;
+  Type parseType(DialectAsmParser &parser) const override;
 
   /// Print a type registered to this dialect.
-  void printType(Type type, raw_ostream &os) const override;
+  void printType(Type type, DialectAsmPrinter &os) const override;
 
   /// Verify a region argument attribute registered to this dialect.
   /// Returns failure if the verification failed, success otherwise.

@@ -13,7 +13,7 @@ func @multi_level_mapping() {
 // CHECK-LABEL: func @dropped_region_with_illegal_ops
 func @dropped_region_with_illegal_ops() {
   // CHECK-NEXT: test.return
-  "test.drop_op"() ({
+  "test.drop_region_op"() ({
     %ignored = "test.illegal_op_f"() : () -> (i32)
     "test.return"() : () -> ()
   }) : () -> ()
@@ -24,6 +24,24 @@ func @replace_non_root_illegal_op() {
   // CHECK-NEXT: "test.legal_op_b"
   // CHECK-NEXT: test.return
   %result = "test.replace_non_root"() : () -> (i32)
+  "test.return"() : () -> ()
+}
+
+// -----
+
+// Test that children of recursively legal operations are ignored.
+func @recursively_legal_invalid_op() {
+  /// Operation that is statically legal.
+  module attributes {test.recursively_legal} {
+    %ignored = "test.illegal_op_f"() : () -> (i32)
+  }
+  /// Operation that is dynamically legal, i.e. the function has a pattern
+  /// applied to legalize the argument type before it becomes recursively legal.
+  func @dynamic_func(%arg: i64) attributes {test.recursively_legal} {
+    %ignored = "test.illegal_op_f"() : () -> (i32)
+    "test.return"() : () -> ()
+  }
+
   "test.return"() : () -> ()
 }
 

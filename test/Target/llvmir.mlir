@@ -24,6 +24,14 @@ llvm.mlir.global constant @string_const("foobar") : !llvm<"[6 x i8]">
 // CHECK: @int_global_undef = internal global i64 undef
 llvm.mlir.global @int_global_undef() : !llvm.i64
 
+// CHECK: @int_gep = internal constant i32* getelementptr (i32, i32* @i32_global, i32 2)
+llvm.mlir.global constant @int_gep() : !llvm<"i32*"> {
+  %addr = llvm.mlir.addressof @i32_global : !llvm<"i32*">
+  %_c0 = llvm.mlir.constant(2: i32) :!llvm.i32
+  %gepinit = llvm.getelementptr %addr[%_c0] : (!llvm<"i32*">, !llvm.i32) -> !llvm<"i32*">
+  llvm.return %gepinit : !llvm<"i32*">
+}
+
 //
 // Declarations of the allocation functions to be linked against.
 //
@@ -803,6 +811,9 @@ llvm.func @ops(%arg0: !llvm.float, %arg1: !llvm.float, %arg2: !llvm.i32, %arg3: 
 // CHECK-NEXT: %22 = ashr i32 %2, %3
   %18 = llvm.ashr %arg2, %arg3 : !llvm.i32
 
+// CHECK-NEXT: fneg float %0
+  %19 = llvm.fneg %arg0 : !llvm.float
+
   llvm.return %10 : !llvm<"{ float, i32 }">
 }
 
@@ -863,6 +874,25 @@ llvm.func @intpointerconversion(%arg0 : !llvm.i32) -> !llvm.i32 {
   %1 = llvm.inttoptr %arg0 : !llvm.i32 to !llvm<"i32*">
   %2 = llvm.ptrtoint %1 : !llvm<"i32*"> to !llvm.i32
   llvm.return %2 : !llvm.i32
+}
+
+llvm.func @fpconversion(%arg0 : !llvm.i32) -> !llvm.i32 {
+// CHECK:      %2 = sitofp i32 %0 to float
+// CHECK-NEXT: %3 = fptosi float %2 to i32
+// CHECK-NEXT: %4 = uitofp i32 %3 to float
+// CHECK-NEXT: %5 = fptoui float %4 to i32
+  %1 = llvm.sitofp %arg0 : !llvm.i32 to !llvm.float
+  %2 = llvm.fptosi %1 : !llvm.float to !llvm.i32
+  %3 = llvm.uitofp %2 : !llvm.i32 to !llvm.float
+  %4 = llvm.fptoui %3 : !llvm.float to !llvm.i32
+  llvm.return %4 : !llvm.i32
+}
+
+// CHECK-LABEL: @addrspace
+llvm.func @addrspace(%arg0 : !llvm<"i32*">) -> !llvm<"i32 addrspace(2)*"> {
+// CHECK: %2 = addrspacecast i32* %0 to i32 addrspace(2)*
+  %1 = llvm.addrspacecast %arg0 : !llvm<"i32*"> to !llvm<"i32 addrspace(2)*">
+  llvm.return %1 : !llvm<"i32 addrspace(2)*">
 }
 
 llvm.func @stringconstant() -> !llvm<"i8*"> {

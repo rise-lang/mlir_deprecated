@@ -834,7 +834,7 @@ func @unregistered_term(%arg0 : i1) -> i1 {
 
 // CHECK-LABEL: func @dialect_attrs
 func @dialect_attrs()
-    // CHECK-NEXT: attributes  {dialect.attr = 10
+    // CHECK: attributes  {dialect.attr = 10
     attributes {dialect.attr = 10} {
   return
 }
@@ -874,9 +874,16 @@ func @pretty_form_multi_result() -> (i16, i16) {
   return %quot, %rem : i16, i16
 }
 
+// CHECK-LABEL: func @pretty_form_multi_result_groups
+func @pretty_form_multi_result_groups() -> (i16, i16, i16, i16, i16) {
+  // CHECK: %[[RES:.*]]:5 =
+  // CHECK: return %[[RES]]#0, %[[RES]]#1, %[[RES]]#2, %[[RES]]#3, %[[RES]]#4
+  %group_1:2, %group_2, %group_3:2 = "foo_test"() : () -> (i16, i16, i16, i16, i16)
+  return %group_1#0, %group_1#1, %group_2, %group_3#0, %group_3#1 : i16, i16, i16, i16, i16
+}
+
 // CHECK-LABEL: func @pretty_dialect_attribute()
 func @pretty_dialect_attribute() {
-
   // CHECK: "foo.unknown_op"() {foo = #foo.simple_attr} : () -> ()
   "foo.unknown_op"() {foo = #foo.simple_attr} : () -> ()
 
@@ -1104,4 +1111,23 @@ func @"\"_string_symbol_reference\""() {
   // CHECK: ref = @"\22_string_symbol_reference\22"
   "foo.symbol_reference"() {ref = @"\"_string_symbol_reference\""} : () -> ()
   return
+}
+
+// CHECK-LABEL: func @nested_reference
+// CHECK: ref = @some_symbol::@some_nested_symbol
+func @nested_reference() attributes {test.ref = @some_symbol::@some_nested_symbol }
+
+// CHECK-LABEL: func @custom_asm_names
+func @custom_asm_names() -> (i32, i32, i32, i32, i32, i32, i32) {
+  // CHECK: %[[FIRST:first.*]], %[[MIDDLE:middle_results.*]]:2, %[[LAST:[0-9]+]]
+  %0, %1:2, %2 = "test.asm_interface_op"() : () -> (i32, i32, i32, i32)
+
+  // CHECK: %[[FIRST_2:first.*]], %[[LAST_2:[0-9]+]]
+  %3, %4 = "test.asm_interface_op"() : () -> (i32, i32)
+
+  // CHECK: %[[RESULT:result.*]]
+  %5 = "test.asm_dialect_interface_op"() : () -> (i32)
+
+  // CHECK: return %[[FIRST]], %[[MIDDLE]]#0, %[[MIDDLE]]#1, %[[LAST]], %[[FIRST_2]], %[[LAST_2]]
+  return %0, %1#0, %1#1, %2, %3, %4, %5 : i32, i32, i32, i32, i32, i32, i32
 }
