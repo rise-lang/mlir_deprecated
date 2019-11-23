@@ -4,6 +4,7 @@
 
 #include "mlir/Dialect/Rise/Dialect.h"
 using namespace mlir;
+using namespace mlir::rise;
 
 // Static initialization for loop dialect registration.
 static DialectRegistration<rise::RiseDialect> Rise;
