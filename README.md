@@ -1,8 +1,7 @@
 ### Exploring the work done in this fork
 * checkout development branch
-* build target RISE
-* run executable riseIL: `riseIL input.mlir --emit=mlir`
-* existing working inputs can be found in `test/Dialect/Rise/`
+* dot product: `mlir-opt test/Dialect/Rise/dotProduct.mlir`
+* matrix-matrix mutliplication: `mlir-opt test/Dialect/Rise/mm.mlir`
 
 existing README:
 
