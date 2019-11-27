@@ -1,0 +1,1 @@
+%test = rise.literal #rise.lit<int<42>>
