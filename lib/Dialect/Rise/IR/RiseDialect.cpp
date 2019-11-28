@@ -393,7 +393,7 @@ LiteralAttr RiseDialect::parseLiteralAttribute(StringRef attrString, mlir::Locat
             emitError(loc, "#rise.float delimiter <...> mismatch");
             return nullptr;
         }
-        //check whether the <> contain a well structured int
+        //check whether the <> contain a well structured float
         return LiteralAttr::get(getContext(), Float::get(getContext()), attrString);
     }
     ///format

@@ -314,6 +314,7 @@ ParseResult parseApplyOp(OpAsmParser &parser, OperationState &result) {
 
     ///resolve operand adds it to the operands of this operation. I have not found another way to add it, yet
     ///addOperands expects a Value, which has to contain the Type of the Operand already, which I don't know here
+//    parser.resolveOperand()
     if (parser.resolveOperand(funOperand, funType, result.operands))
         failure();
     //    Value()

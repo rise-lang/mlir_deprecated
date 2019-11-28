@@ -42,16 +42,11 @@ Type RiseTypeConverter::convertIntType(Int type) {
 }
 
 
-
-
-
-
-
-
 //===----------------------------------------------------------------------===//
 // Patterns
 //===----------------------------------------------------------------------===//
 
+///Literal
 struct LiteralLowering : public OpRewritePattern<LiteralOp> {
     using OpRewritePattern<LiteralOp>::OpRewritePattern;
 
@@ -67,15 +62,54 @@ LiteralLowering::matchAndRewrite(LiteralOp literalOp, PatternRewriter &rewriter)
     ///conversion to itself
 //    rewriter.create<LiteralOp>(loc, literalAttr.getType(), literalAttr);
 //    rewriter.eraseOp(literalOp);
+    switch (literalAttr.getType().getKind()) {
+        default: {
+            emitError(loc) << "could not lower rise.literal";
+            return matchFailure();
+        }
+        case RiseTypeKind::RISE_INT: {
+            int32_t value = std::stoi(literalAttr.getValue());
+            rewriter.create<ConstantIntOp>(loc, value, IntegerType::get(32, rewriter.getContext())); //why is this getting such a strange SSA id?
+            break;
+        }
+        case RiseTypeKind::RISE_FLOAT: {
+            APFloat value = APFloat(std::stof(literalAttr.getValue()));
+            rewriter.create<ConstantFloatOp>(loc, value, FloatType::getF32(rewriter.getContext()));
+            break;
+        }
+    }
 
-    int32_t value = std::stoi(literalAttr.getValue());
-    rewriter.create<ConstantIntOp>(loc, value, 32); //why is this getting such a strange SSA id?
     rewriter.eraseOp(literalOp);
     return matchSuccess();
 }
 
+///Lambda
+struct LambdaLowering : public OpRewritePattern<LambdaOp> {
+    using OpRewritePattern<LambdaOp>::OpRewritePattern;
+
+    PatternMatchResult matchAndRewrite(LambdaOp lambdaOp,
+                                       PatternRewriter &rewriter) const override;
+};
+
+PatternMatchResult
+LambdaLowering::matchAndRewrite(LambdaOp lambdaOp, PatternRewriter &rewriter) const {
+    MLIRContext *context = rewriter.getContext();
+    Location loc = lambdaOp.getLoc();
+
+    FunctionType funType = FunctionType::get({}, {}, context);
+    FuncOp fun = rewriter.create<FuncOp>(loc, "testFun", funType, ArrayRef<NamedAttribute>{});
+    Block *funBody = fun.addEntryBlock();
+
+    //Adding the region of the lambdaOp to the FuncOp. Enclosed ops are handled separately
+    rewriter.inlineRegionBefore(lambdaOp.region(), *funBody->getParent(), funBody->getParent()->end());
+
+    //TODO: Add a region to the FuncOp, corresponding to the body of the Lambda
 
 
+    rewriter.eraseOp(lambdaOp);
+
+    return matchSuccess();
+}
 
 
 
@@ -83,7 +117,7 @@ LiteralLowering::matchAndRewrite(LiteralOp literalOp, PatternRewriter &rewriter)
 ///gather all patterns
 void mlir::populateRiseToStdConversionPatterns(
         OwningRewritePatternList &patterns, MLIRContext *ctx) {
-    patterns.insert<LiteralLowering>(ctx);
+    patterns.insert<LiteralLowering, LambdaLowering>(ctx);
 }
 
 
@@ -91,11 +125,20 @@ void mlir::populateRiseToStdConversionPatterns(
 // Pass
 //===----------------------------------------------------------------------===//
 
+/// Create an instance of LLVMTypeConverter in the given context.
+static std::unique_ptr<RiseTypeConverter>
+makeRiseToStandardTypeConverter(MLIRContext *context) {
+    return std::make_unique<RiseTypeConverter>(context);
+}
+
+
 /// The pass:
 void ConvertRiseToStandardPass::runOnModule() {
     auto module = getModule();
 
-    // Convert to the LLVM IR dialect using the converter defined above.
+    //TODO: Initialize RiseTypeConverter here and use it below.
+//    std::unique_ptr<RiseTypeConverter> converter = makeRiseToStandardTypeConverter(&getContext());
+
     OwningRewritePatternList patterns;
 //    LinalgTypeConverter converter(&getContext());
 //    populateAffineToStdConversionPatterns(patterns, &getContext());
@@ -108,9 +151,12 @@ void ConvertRiseToStandardPass::runOnModule() {
 
     ConversionTarget target(getContext());
     target.addLegalDialect<StandardOpsDialect>();
+    target.addLegalOp<FuncOp>();
 //    target.addDynamicallyLegalOp<FuncOp>(
 //            [&](FuncOp op) { return converter.isSignatureLegal(op.getType()); });
 //    target.addLegalOp<ModuleOp, ModuleTerminatorOp>();
+
+    //TODO: Add our TypeConverter as last argument
     if (failed(applyPartialConversion(module, target, patterns)))
         signalPassFailure();
 }

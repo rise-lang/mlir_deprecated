@@ -13,7 +13,7 @@ class RiseTypeConverter : public TypeConverter {
 public:
     using TypeConverter::convertType;
 
-//    RiseTypeConverter(MLIRContext *ctx);
+    RiseTypeConverter(MLIRContext *ctx);
 
     /// Convert types to Standard.
     Type convertType(Type t) override;
