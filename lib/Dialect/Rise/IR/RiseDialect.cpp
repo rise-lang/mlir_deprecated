@@ -457,10 +457,10 @@ std::string static stringForAttribute(Attribute attribute) {
                     return "lit<int<" + attribute.dyn_cast<LiteralAttr>().getValue() + ">>";
                 }
                 case RiseTypeKind::RISE_FLOAT: {
-                    return "lit<float>";
+                    return "lit<float<" + attribute.dyn_cast<LiteralAttr>().getValue() + ">>";
                 }
                 case RiseTypeKind::RISE_NAT: {
-                    return "lat<nat>";
+                    return "lit<nat<" + attribute.dyn_cast<LiteralAttr>().getValue() + ">>";
                 }
                 case RiseTypeKind::RISE_ARRAY: {
                     return "lit<array<" + attribute.dyn_cast<LiteralAttr>().getValue()

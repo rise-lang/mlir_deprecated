@@ -96,7 +96,7 @@ LambdaLowering::matchAndRewrite(LambdaOp lambdaOp, PatternRewriter &rewriter) co
     MLIRContext *context = rewriter.getContext();
     Location loc = lambdaOp.getLoc();
 
-    FunctionType funType = FunctionType::get({}, {}, context);
+    FunctionType funType = FunctionType::get(lambdaOp.getType().cast<FunType>().getInput(), lambdaOp.getType().cast<FunType>().getInput(), context);
     FuncOp fun = rewriter.create<FuncOp>(loc, "testFun", funType, ArrayRef<NamedAttribute>{});
     Block *funBody = fun.addEntryBlock();
 
@@ -111,8 +111,22 @@ LambdaLowering::matchAndRewrite(LambdaOp lambdaOp, PatternRewriter &rewriter) co
     return matchSuccess();
 }
 
+///Apply
+struct ApplyLowering : public OpRewritePattern<ApplyOp> {
+    using OpRewritePattern<ApplyOp>::OpRewritePattern;
 
+    PatternMatchResult matchAndRewrite(ApplyOp applyOp,
+                                       PatternRewriter &rewriter) const override;
+};
 
+PatternMatchResult matchAndRewrite(ApplyOp applyOp,
+                                   PatternRewriter &rewriter) const {
+    MLIRContext *context = rewriter.getContext();
+    Location loc = applyOp.getLoc();
+    //TODO: do
+    return matchSuccess();
+
+}
 
 ///gather all patterns
 void mlir::populateRiseToStdConversionPatterns(
@@ -125,11 +139,11 @@ void mlir::populateRiseToStdConversionPatterns(
 // Pass
 //===----------------------------------------------------------------------===//
 
-/// Create an instance of LLVMTypeConverter in the given context.
-static std::unique_ptr<RiseTypeConverter>
-makeRiseToStandardTypeConverter(MLIRContext *context) {
-    return std::make_unique<RiseTypeConverter>(context);
-}
+///// Create an instance of LLVMTypeConverter in the given context.
+//static std::unique_ptr<RiseTypeConverter>
+//makeRiseToStandardTypeConverter(MLIRContext *context) {
+//    return std::make_unique<RiseTypeConverter>(context);
+//}
 
 
 /// The pass:
