@@ -113,64 +113,6 @@ DataType rise::Tuple::getFirst() {
 DataType rise::Tuple::getSecond() {
     return getImpl()->getSecond();
 }
-//===----------------------------------------------------------------------===//
-// LambdaType
-//===----------------------------------------------------------------------===//
-
-/// This method is used to get an instance of the 'ComplexType'. This method
-/// asserts that all of the construction invariants were satisfied. To
-/// gracefully handle failed construction, getChecked should be used instead.
-LambdaType LambdaType::get(mlir::MLIRContext *context, Type input, Type output) {
-    // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-    // of this type. All parameters to the storage class are passed after the
-    // type kind.
-    return Base::get(context, RiseTypeKind::RISE_LAMBDA, input, output);
-}
-
-/// This method is used to get an instance of the 'ComplexType', defined at
-/// the given location. If any of the construction invariants are invalid,
-/// errors are emitted with the provided location and a null type is returned.
-/// Note: This method is completely optional
-LambdaType LambdaType::getChecked(mlir::MLIRContext *context, Type input, Type output,
-                                      mlir::Location location) {
-    return Base::getChecked(location, context, RiseTypeKind::RISE_LAMBDA, input, output);
-}
-
-/// This method is used to verify the construction invariants passed into the
-/// 'get' and 'getChecked' methods. Note: This method is completely optional.
-mlir::LogicalResult LambdaType::verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
-                                                               mlir::MLIRContext *context,
-                                                             Type input, Type output) {
-    ///For some reason this method is called without a valid location in StorageUniquerSupport
-
-    //Determine here all valid types for Lambda in and out
-
-    if (!input.isa<Type>()) {
-        if (loc) {
-            emitError(loc.getValue(), "input is not a valid Type to construct LambdaType");
-        } else {
-            emitError(UnknownLoc::get(context), "input is not a valid Type to construct LambdaType");
-        }
-        return mlir::failure();
-    }
-    if (!output.isa<Type>()) {
-        if (loc) {
-            emitError(loc.getValue(), "output is not a valid Type to construct LambdaType");
-        } else {
-            emitError(UnknownLoc::get(context), "output is not a valid Type to construct LambdaType");
-        }
-        return mlir::failure();
-    }
-    return mlir::success();
-}
-
-Type LambdaType::getInput() {
-    return getImpl()->input;
-}
-
-Type LambdaType::getOutput() {
-    return getImpl()->output;
-}
 
 //===----------------------------------------------------------------------===//
 // ArrayType

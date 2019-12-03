@@ -18,7 +18,6 @@ namespace rise {
 
 namespace detail {
 struct ArrayTypeStorage;
-struct RiseLambdaTypeStorage;
 struct RiseFunTypeStorage;
 struct RiseDataTypeWrapperStorage;
 struct RiseTupleTypeStorage;
@@ -37,33 +36,11 @@ enum RiseTypeKind {
     RISE_INT,
     RISE_FLOAT,
     RISE_TUPLE,
-    RISE_LAMBDA,
     RISE_ARRAY,
 };
 
-class BaseType : public mlir::Type::TypeBase<BaseType, Type> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
 
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_BASETYPE; }
-    static bool hasBaseType(unsigned kind) { return kind == RiseTypeKind::RISE_BASETYPE; }
-    ///TODO: look at tensorflow dialect in tf_types.h  the classof metos does this much more elegant
-
-
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static BaseType get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, RiseTypeKind::RISE_BASETYPE);
-    }
-};
-
-class RiseType : public mlir::Type::TypeBase<RiseType, BaseType> {
+class RiseType : public Type::TypeBase<RiseType, Type> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -71,7 +48,6 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
 
     /// This method is used to get an instance of the 'SimpleType'. Given that
     /// this is a parameterless type, it just needs to take the context for
@@ -84,7 +60,7 @@ public:
 };
 
 
-class FunType : public mlir::Type::TypeBase<FunType, RiseType, detail::RiseFunTypeStorage> {
+class FunType : public Type::TypeBase<FunType, RiseType, detail::RiseFunTypeStorage> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -109,7 +85,7 @@ public:
 };
 
 
-class DataType : public mlir::Type::TypeBase<DataType, BaseType> {
+class DataType : public Type::TypeBase<DataType, Type> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -129,7 +105,7 @@ public:
     }
 };
 
-class DataTypeWrapper : public mlir::Type::TypeBase<DataTypeWrapper, RiseType, detail::RiseDataTypeWrapperStorage> {
+class DataTypeWrapper : public Type::TypeBase<DataTypeWrapper, RiseType, detail::RiseDataTypeWrapperStorage> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -146,7 +122,7 @@ public:
     DataType getData();
 };
 
-class Int : public mlir::Type::TypeBase<Int, DataType> {
+class Int : public Type::TypeBase<Int, DataType> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -166,7 +142,7 @@ public:
     }
 };
 
-class Float : public mlir::Type::TypeBase<Float, DataType> {
+class Float : public Type::TypeBase<Float, DataType> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -233,7 +209,7 @@ public:
 
 };
 
-class Nat : public mlir::Type::TypeBase<Nat, BaseType> {
+class Nat : public mlir::Type::TypeBase<Nat, Type> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -273,30 +249,6 @@ public:
         return Base::get(context, RiseTypeKind::RISE_NAT_WRAPPER);
     }
 };
-
-///deprecated
-class LambdaType : public mlir::Type::TypeBase<LambdaType, Type, detail::RiseLambdaTypeStorage> {
-public:
-    using Base::Base;
-
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_LAMBDA; }
-
-    static LambdaType get(mlir::MLIRContext *context,
-                          mlir::Type input, mlir::Type output);
-
-    static LambdaType getChecked(mlir::MLIRContext *context, mlir::Type input, mlir::Type output,
-                                 mlir::Location location);
-
-
-    static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
-                                                            mlir::MLIRContext *context,
-                                                            mlir::Type input, mlir::Type output);
-
-    mlir::Type getInput();
-
-    mlir::Type getOutput();
-};
-
 
 } //end namespace rise
 } //end namespace mlir

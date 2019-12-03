@@ -62,11 +62,6 @@ def FunType : Type<CPred<"$_self.isa<FunType>()">, "fun type">;
 def DataTypeWrapper : Type<CPred<"$_self.isa<DataTypeWrapper>()">, "data fun type">;
 def RiseType : Type<Or<[FunType.predicate, DataTypeWrapper.predicate]>>;
 
-def LambdaType : Type<CPred<"$_self.isa<LambdaType>()">, "lambda type">;
-//def KindType : Type<CPred<"$_self.isa<Kind>()">, "kind type">;
-def SubclassOfKindType : AnyTypeOf<[NatType, LambdaType], "subclass of kind type">;
-//TODO: add other Types
-
 ///Attributes
 def RiseTypeAttr : Attr<CPred<"$_self.isa<RiseTypeAttr>()">,
         "rise type attribute">{
@@ -86,7 +81,7 @@ def NatAttr : Attr<CPred<"$_self.isa<NatAttr>()">,
 
 def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
     let summary = "literal";
-    let arguments = (ins AnyAttr:$literalValue);
+    let arguments = (ins AnyAttr:$literal);
     let results = (outs RiseType);
     let extraClassDeclaration = [{Attribute getValue() { return getAttr("value"); }
         /// Returns true if a constant operation can be built with the given value
@@ -176,14 +171,14 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
 
 def AddOp : Rise_Op<"add", [NoSideEffect]> {
     let summary = "rise add operation";
-    let arguments = (ins DataTypeAttr:$s);
+    let arguments = (ins DataTypeAttr:$t);
     let results = (outs FunType:$addFun);
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 
 def MultOp : Rise_Op<"mult", [NoSideEffect]> {
     let summary = "rise mult operation";
-    let arguments = (ins DataTypeAttr:$s);
+    let arguments = (ins DataTypeAttr:$t);
     let results = (outs FunType:$multFun);
     let parser = [{ return parse$cppClass(parser, result); }];
 }

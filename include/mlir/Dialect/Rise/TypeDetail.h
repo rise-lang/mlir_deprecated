@@ -25,6 +25,7 @@ namespace rise {
 namespace detail {
 
 
+/// Rise type structure:
 struct RiseDataTypeWrapperStorage : public mlir::TypeStorage {
     RiseDataTypeWrapperStorage(DataType data) : data(data) {}
 
@@ -77,32 +78,6 @@ struct RiseFunTypeStorage : public mlir::TypeStorage {
     RiseType output;
 };
 
-struct RiseLambdaTypeStorage : public mlir::TypeStorage {
-    RiseLambdaTypeStorage(mlir::Type input, mlir::Type output) : input(input), output(output) {}
-
-    using KeyTy = std::pair<mlir::Type, mlir::Type>;
-
-    bool operator==(const KeyTy &key) const {
-        return key == KeyTy(input, output);
-    }
-
-    static llvm::hash_code hashKey(const KeyTy &key) {
-        return llvm::hash_combine(key.first, key.second);
-    }
-
-    static KeyTy getKey(mlir::Type input, mlir::Type output) {
-        return KeyTy(input, output);
-    }
-
-    static RiseLambdaTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
-                                              const KeyTy &key) {
-        return new(allocator.allocate<RiseLambdaTypeStorage>()) RiseLambdaTypeStorage(key.first, key.second);
-    }
-
-    mlir::Type input;
-    mlir::Type output;
-};
-
 /// This class holds the implementation of the TupleType.
 /// It is intended to be uniqued based on its content and owned by the context.
 struct RiseTupleTypeStorage : public mlir::TypeStorage {
@@ -141,8 +116,6 @@ private:
     DataType first;
     DataType second;
 };
-
-
 
 
 /// This class holds the implementation of the RiseArrayType.

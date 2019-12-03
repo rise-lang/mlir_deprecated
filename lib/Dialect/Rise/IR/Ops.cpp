@@ -39,348 +39,116 @@ namespace rise {
 //===----------------------------------------------------------------------===//
 ParseResult parseLambdaOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
-
-//    OpAsmParser::OperandType lambdaInputVariable;
-    SmallVector<OpAsmParser::OperandType, 10> inputs;
-    SmallVector<Type, 10> inputTypes = SmallVector<Type, 10>();
+    SmallVector<OpAsmParser::OperandType, 4> arguments;
+    SmallVector<Type, 4> argumentTypes = SmallVector<Type, 4>();
     FunType funType;
-//    RiseType lambdaInputType;
-//    RiseType lambdaOutputType;
 
-    // Parse the lambdaInput variable
-//    if (parser.parseRegionArgument(lambdaInputVariable))
-//        return failure();
-    if (parser.parseRegionArgumentList(inputs, OpAsmParser::Delimiter::Paren))
+    //arguments for the lambda
+    if (parser.parseRegionArgumentList(arguments, OpAsmParser::Delimiter::Paren))
         failure();
 
-    //parse LambdaInputType
+    //result type of this lambda
     if (parser.parseColon() || parser.parseType(funType))
         return failure();
 
-//    std::cout << "yo: " << RiseDialect::stringForType(funType);
-    ///outsource to its own method
-    inputTypes.push_back(funType.getInput());
-
-    //handle multiple inputs:
-    for (int i = 1; i < inputs.size(); i++) {
+    //arguments have to fit the given lambda type
+    argumentTypes.push_back(funType.getInput());
+    for (int i = 1; i < arguments.size(); i++) {
         if (funType.getOutput().isa<FunType>()) {
             funType = funType.getOutput().dyn_cast<FunType>();
-            inputTypes.push_back(funType.getInput());
+            argumentTypes.push_back(funType.getInput());
         } else {
-            parser.emitError(parser.getCurrentLocation()) << ": number of arguments: " << std::to_string(i) << " is too high for specified funType";
+            parser.emitError(parser.getCurrentLocation()) << ": number of arguments: "
+            << std::to_string(i) << " is too high for specified funType";
             return failure();
         }
     }
 
-    //parse LambdaOutputType
-//    if (parser.parseArrow() || parser.parseType(lambdaOutputType))
-//        return failure();
-
-    // Parse the body region.
+    // Parse body of lambda
     Region *body = result.addRegion();
-    if (parser.parseRegion(*body, inputs, inputTypes))
+    if (parser.parseRegion(*body, arguments, argumentTypes))
         return failure();
+
     LambdaOp::ensureTerminator(*body, builder, result.location);
-
-    // Parse the optional attribute list.
-//    if (parser.parseOptionalAttributeDict(result.attributes))
-//        return failure();
-
-//    RiseType funInput;
-//    RiseType funOutput;
-
-    //This seems not like the right way to do this.
-//    switch (lambdaInputType.getKind()) {
-//        default: {
-//            funInput = lambdaInputType;
-//            break;
-//        }
-//        case RiseTypeKind::RISE_INT: {
-//            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Int>());
-//            break;
-//        }
-//        case RiseTypeKind::RISE_FLOAT: {
-//            funInput = DataTypeWrapper::get(builder.getContext(), lambdaInputType.dyn_cast<Float>());
-//            break;
-//        }
-//    }
-//    switch (lambdaOutputType.getKind()) {
-//        default: {
-//            funOutput = lambdaOutputType;
-//            break;
-//        }
-//        case RiseTypeKind::RISE_INT: {
-//            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Int>());
-//            break;
-//        }
-//        case RiseTypeKind::RISE_FLOAT: {
-//            funOutput = DataTypeWrapper::get(builder.getContext(), lambdaOutputType.dyn_cast<Float>());
-//            break;
-//        }
-//    }
-
-//    FunType type = FunType::get(builder.getContext(), funInput, funOutput);
     result.addTypes(funType);
     return success();
 }
-
-//LogicalResult LambdaOp::verify() {
-//        unsigned index = 0; (void)index;
-//        for (Value *v : getODSResults(0)) {
-//            (void)v;
-//            if (!((v.getType().isa<FunType>()))) {
-//                return emitOpError("result #") << index << " must be funny type, but got " << v.getType();
-//            }
-//            ++index;
-//        }
-//    if (this->getOperation()->getNumRegions() != 1) {
-//        return emitOpError("has incorrect number of regions: expected 1 but found ") << this->getOperation()->getNumRegions();
-//    }
-//    if (!((this->getOperation()->getRegion(0).getBlocks().size() == 1))) {
-//        return emitOpError("region #0 ('region') failed to verify constraint: region with 1 blocks");
-//    }
-//    return mlir::success();
-//}
-
-
-//ArrayType parseArrayLiteral()
-
-//===----------------------------------------------------------------------===//
-// ParseLiteralOp
-//===----------------------------------------------------------------------===//
-ParseResult parseLiteralOp(OpAsmParser &parser, OperationState &result) {
-    ///Format:
-    ///         rise.literal #rise.int<42>
-    ///         rise.literal #rise.array<2, rise.int, [1,2]>
-    ///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
-
-    auto &builder = parser.getBuilder();
-
-
-//    if (parser.parseType(literalType))
-//        failure();
-
-//    if (parser.parseLParen())
-//        failure();
-
-    LiteralAttr attr;
-    if (parser.parseAttribute(attr, "literalValue",result.attributes))
-        return failure();
-
-
-//    switch (attr.getType().getKind()) {
-//        default: {
-//            return failure();
-//        }
-//        //If subclass of DataType we have to wrap
-//        case RiseTypeKind::RISE_INT: {
-//            literalType = DataTypeWrapper::get(builder.getContext(), attr.getType().dyn_cast<Int>());
-//            break;
-//        }
-//        case RiseTypeKind::RISE_FLOAT: {
-//            literalType = DataTypeWrapper::get(builder.getContext(), attr.getType().dyn_cast<Float>());
-//            break;
-//        }
-//        case RiseTypeKind::RISE_ARRAY: {
-//            literalType = DataTypeWrapper::get(builder.getContext(), attr.getType().dyn_cast<ArrayType>());
-//            break;
-//        }
-//        case RiseTypeKind::RISE_TUPLE: {
-//            literalType = DataTypeWrapper::get(builder.getContext(), attr.getType().dyn_cast<Tuple>());
-//            break;
-//        }
-//        //If subclass of RiseType we can use it directly
-//        case RiseTypeKind::RISE_FUNTYPE: {
-//            literalType = attr.getType().dyn_cast<FunType>();
-//        }
-//        case RiseTypeKind::RISE
-//    }
-
-
-    result.addTypes(DataTypeWrapper::get(builder.getContext(), attr.getType()));
-
-    return success();
-
-
-    if (succeeded(parser.parseOptionalLSquare())) {
-        //Houston, we have an array
-
-        ///These should be parsable
-        ///%0 = rise.array [1,5,6,1,0]
-        ///%0 = rise.array [[1,2],[2,3]]
-
-//        if (parser.parseComm)
-//        while (succeeded(parser.parseOptionalComma())) {
-//
-//        }
-
-    } else {
-        //    OpAsmParser::OperandType value;
-////    Attribute value;
-        mlir::Type literalType;
-//
-//
-//    if (parser.parseOperand(value))
-//        return failure();
-        Attribute attr;
-        if (parser.parseAttribute(attr, IntegerType::get(16, parser.getBuilder().getContext()), "literalValue",result.attributes))
-            return failure();
-
-
-        if (parser.parseColonType(literalType))
-            return failure();
-
-
-//    if(parser.parseAttribute(value, "literalValue", result.attributes))
-//        return failure();
-
-//    auto attr = builder.getTypeAttr(literalType);
-//    result.addAttribute("literalValue", attr);
-//    if (parser.parse)
-//    if(parser.parseColon())
-//        return failure();
-
-//    result.addAttribute("literalValue", value);
-        result.addTypes(literalType);
-
-    }
-
-
-    return success();
-}
-
-
-//===----------------------------------------------------------------------===//
-// ParseArrayOp
-//===----------------------------------------------------------------------===//
-///// to be replaced by literalop
-//ParseResult parseArrayOp(OpAsmParser &parser, OperationState &result) {
-//    auto &builder = parser.getBuilder();
-//
-////    IntegerAttr sizeAttr;
-////    RiseTypeAttr elementTypeAttr;
-////
-////    if (parser.parseAttribute(sizeAttr,
-////            IntegerType::get(16, parser.getBuilder().getContext()),
-////            "size",result.attributes))
-////        return failure();
-////
-//////    if (parser.parseAttribute(elementTypeAttr, Type(),
-//////            "elementType", result.attributes))
-//////        return failure();
-////    ///TODO: this should really be done using parseAttribute, but for some reason the method parseAttribute of this dialect is not called
-////    mlir::Type type;
-////    if (parser.parseType(type))
-////        failure();
-////
-////    elementTypeAttr = RiseTypeAttr::get(type);
-////    result.addAttribute("elementType", elementTypeAttr);
-////
-////    //TODO change hardcode of Nat
-////    //somewhere the nat elementType gets changed to a float
-////    auto arrayType = ArrayType::get(parser.getBuilder().getContext(),
-////            sizeAttr.getInt(), type);
-////
-////    result.addTypes(arrayType);
-//
-//    return success();
-//}
-
 
 //===----------------------------------------------------------------------===//
 // ApplyOp
 //===----------------------------------------------------------------------===//
 ParseResult parseApplyOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
-
     OpAsmParser::OperandType funOperand;
     FunType funType;
+    SmallVector<OpAsmParser::OperandType, 4> arguments;
+    SmallVector<Type, 4> argumentTypes = SmallVector<Type,4>();
 
-    SmallVector<OpAsmParser::OperandType, 10> inputs;
-    SmallVector<Type, 10> inputTypes = SmallVector<Type,10>();
-
-    OpAsmParser::OperandType argumentOperand;
-    Type argumentType;
-    Type outputType;
-
-    result.setOperandListToResizable();
-
-    //now looks %result = rise.apply %id : !rise.fun<!rise.data<int> -> !rise.data<int>>, %42
     //parse function
     if (parser.parseOperand(funOperand))
         return failure();
+
+    //parse type of the function
     if (parser.parseColonType(funType))
         return failure();
 
-    ///resolve operand adds it to the operands of this operation. I have not found another way to add it, yet
-    ///addOperands expects a Value, which has to contain the Type of the Operand already, which I don't know here
+    //TODO: we dont want to have to explicitly give our type
+    ///resolve operand adds it to the operands of this operation.
+    /// I have not found another way to add it, yet
+    /// result.addOperands expects a mlir::Value, which has to contain the Type of the
+    /// Operand already, which I don't know here
     if (parser.resolveOperand(funOperand, funType, result.operands))
         failure();
-    //    Value()
-    //    result.addOperands(funOperand);
 
     //parse arguments
-    if (parser.parseTrailingOperandList(inputs))
+    if (parser.parseTrailingOperandList(arguments))
         failure();
 
-    //one argument is always needed
-    inputTypes.push_back(funType.getInput());
-
-    //handle multiple inputs:
-    for (int i = 1; i < inputs.size(); i++) {
+    //get types of arguments from the function type and determine
+    //the result type of this apply operation
+    argumentTypes.push_back(funType.getInput());
+    for (int i = 1; i < arguments.size(); i++) {
         if (funType.getOutput().isa<FunType>()) {
             funType = funType.getOutput().dyn_cast<FunType>();
-            inputTypes.push_back(funType.getInput());
+            argumentTypes.push_back(funType.getInput());
         } else {
-            parser.emitError(parser.getCurrentLocation()) << "expected a maximum " << std::to_string(i) << " inputs for this function.";
+            parser.emitError(parser.getCurrentLocation()) << "expected a maximum "
+            << std::to_string(i) << " arguments for this function.";
             return failure();
         }
     }
-
-    if (parser.resolveOperands(inputs, inputTypes, parser.getCurrentLocation(), result.operands))
+    if (parser.resolveOperands(arguments, argumentTypes, parser.getCurrentLocation(), result.operands))
         failure();
-
-//    if (parser.resolveOperand(inputs.front(), argumentType, result.operands))
-//        failure();
-
 
     result.addTypes(funType.getOutput());
     return success();
 }
 
-
 //===----------------------------------------------------------------------===//
-// ReturnOp
+// ParseLiteralOp
 //===----------------------------------------------------------------------===//
-ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
+///Format:
+///         rise.literal #rise.int<42>
+///         rise.literal #rise.array<2, rise.int, [1,2]>
+///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>
+//TODO: restructure the literal attribute to clearly differ between type and value
+ParseResult parseLiteralOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
+    LiteralAttr attr;
 
-    OpAsmParser::OperandType value;
-    Type type;
-    result.setOperandListToResizable();
+    //type and value of literal
+    if (parser.parseAttribute(attr, "literal",result.attributes))
+        return failure();
 
-//    SmallVector<OpAsmParser::OperandType, 1> values;
-//    if (parser.parseOperandList(values, 0))
-//        return failure();
-//
-//    if (parser.resolveOperands(values, {Nat::get(parser.getBuilder().getContext())}, result.operands))
-//        return failure();
-
-
-    if (parser.parseOperand(value))
-        failure();
-    if (parser.parseColonType(type))
-        failure();
-    if (parser.resolveOperand(value, type, result.operands))
-        failure();
-
+    result.addTypes(DataTypeWrapper::get(builder.getContext(), attr.getType()));
     return success();
 }
 
 //===----------------------------------------------------------------------===//
 // Map
 //===----------------------------------------------------------------------===//
-/// (n : nat) → (s t : data) → (exp[s] → exp[t ]) → exp[n.s] → exp[n.t ]
+
+///map: {n : nat} → {s t : data} → (s → t ) → n.s → n.t
 ParseResult parseMapOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
@@ -388,12 +156,15 @@ ParseResult parseMapOp(OpAsmParser &parser, OperationState &result) {
     DataTypeAttr s, t;
     result.setOperandListToResizable();
 
+    //length of array
     if (parser.parseAttribute(n, "n", result.attributes))
         failure();
 
+    //input array element type
     if (parser.parseAttribute(s, "s", result.attributes))
         failure();
 
+    //output array element type
     if (parser.parseAttribute(t, "t", result.attributes))
         failure();
 
@@ -404,13 +175,14 @@ ParseResult parseMapOp(OpAsmParser &parser, OperationState &result) {
                                  FunType::get(builder.getContext(),
                                               DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), s.getValue())),
                                               DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), t.getValue())))));
-
     return success();
 }
 
 //===----------------------------------------------------------------------===//
 // Reduce
 //===----------------------------------------------------------------------===//
+
+///reduce: {n : nat} → {s t : data} → (s → t → t ) → t → n.s → t
 ParseResult parseReduceOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
@@ -418,7 +190,7 @@ ParseResult parseReduceOp(OpAsmParser &parser, OperationState &result) {
     DataTypeAttr s, t;
     result.setOperandListToResizable();
 
-    //n - number of elements in Array
+    //number of elements in Array
     if (parser.parseAttribute(n, "n", result.attributes))
         failure();
 
@@ -426,10 +198,9 @@ ParseResult parseReduceOp(OpAsmParser &parser, OperationState &result) {
     if (parser.parseAttribute(s, "s", result.attributes))
         failure();
 
-    //resulttype and initializer type
+    //accumulator type
     if (parser.parseAttribute(t, "t", result.attributes))
         failure();
-    /// (n : nat) → (s t : data) → (exp[s] → exp[t ] → exp[t ]) → exp[t ] → exp[n.s] → exp[t ]
 
     result.addTypes(FunType::get(builder.getContext(),
                                  FunType::get(builder.getContext(),
@@ -447,17 +218,47 @@ ParseResult parseReduceOp(OpAsmParser &parser, OperationState &result) {
 }
 
 //===----------------------------------------------------------------------===//
-// Tuples
+// Tuple Ops
 //===----------------------------------------------------------------------===//
-ParseResult parseTupleOp(OpAsmParser &parser, OperationState &result) {
+
+///zip: {n : nat} → {s t : data} → n.s → n.t → n.(s × t )
+ParseResult parseZipOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
 
+    NatAttr n;
+    DataTypeAttr s, t;
+
+    //number of elements in Array
+    if (parser.parseAttribute(n, "n",result.attributes))
+        return failure();
+
+    //elementType of first Array
+    if (parser.parseAttribute(s, "s",result.attributes))
+        return failure();
+
+    //elementType of second Array
+    if (parser.parseAttribute(t, "t",result.attributes))
+        return failure();
+
+    result.addTypes(FunType::get(builder.getContext(),
+                                 DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), s.getValue())),
+                                 FunType::get(builder.getContext(),
+                                              DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), t.getValue())),
+                                              DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), Tuple::get(builder.getContext(), s.getValue(), t.getValue()))))));
+    return success();
+}
+
+///tuple: {s t : data} → s → t → s × t
+ParseResult parseTupleOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
     DataTypeAttr s, t;
     result.setOperandListToResizable();
 
+    //type of first element
     if (parser.parseAttribute(s, "s", result.attributes))
         failure();
 
+    //type of second element
     if (parser.parseAttribute(t, "t", result.attributes))
         failure();
 
@@ -466,38 +267,40 @@ ParseResult parseTupleOp(OpAsmParser &parser, OperationState &result) {
             FunType::get(builder.getContext(),
                     DataTypeWrapper::get(builder.getContext(), t.getValue()),
                     DataTypeWrapper::get(builder.getContext(), Tuple::get(builder.getContext(), s.getValue(), t.getValue())))));
-
     return success();
 }
 
+///fst: {s t : data} → s × t → s
 ParseResult parseFstOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
-
     DataTypeAttr s, t;
     result.setOperandListToResizable();
 
+    //type of first element
     if (parser.parseAttribute(s, "s", result.attributes))
         failure();
 
+    //type of second element
     if (parser.parseAttribute(t, "t", result.attributes))
         failure();
 
     result.addTypes(FunType::get(builder.getContext(),
                                  DataTypeWrapper::get(builder.getContext(), Tuple::get(builder.getContext(), s.getValue(), t.getValue())),
                                  DataTypeWrapper::get(builder.getContext(), s.getValue())));
-
     return success();
 }
 
+///snd: {s t : data} → s × t → t
 ParseResult parseSndOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
-
     DataTypeAttr s, t;
     result.setOperandListToResizable();
 
+    //type of first element
     if (parser.parseAttribute(s, "s", result.attributes))
         failure();
 
+    //type of second element
     if (parser.parseAttribute(t, "t", result.attributes))
         failure();
 
@@ -505,73 +308,68 @@ ParseResult parseSndOp(OpAsmParser &parser, OperationState &result) {
                                  DataTypeWrapper::get(builder.getContext(),
                                          Tuple::get(builder.getContext(), s.getValue(), t.getValue())),
                                  DataTypeWrapper::get(builder.getContext(), t.getValue())));
-
     return success();
-}
-
-///zip: (n : nat) → (s t : data) → exp[n.s] → exp[n.t ] → exp[n.(s × t )]
-
-ParseResult parseZipOp(OpAsmParser &parser, OperationState &result) {
-    auto &builder = parser.getBuilder();
-
-    NatAttr n;
-    DataTypeAttr s, t;
-
-    if (parser.parseAttribute(n, "n",result.attributes))
-        return failure();
-
-    if (parser.parseAttribute(s, "s",result.attributes))
-        return failure();
-
-    if (parser.parseAttribute(t, "t",result.attributes))
-        return failure();
-
-    result.addTypes(FunType::get(builder.getContext(),
-            DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), s.getValue())),
-                    FunType::get(builder.getContext(),
-                            DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), t.getValue())),
-                            DataTypeWrapper::get(builder.getContext(), ArrayType::get(builder.getContext(), n.getValue(), Tuple::get(builder.getContext(), s.getValue(), t.getValue()))))));
-
-    return success();
-
 }
 
 //===----------------------------------------------------------------------===//
 // Arithmetics
 //===----------------------------------------------------------------------===//
 
-
+///add: {t : data} → t → t → t
 ParseResult parseAddOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
+    DataTypeAttr t;
 
-    DataTypeAttr s;
-
-    if (parser.parseAttribute(s, "s", result.attributes))
+    //type of summands
+    if (parser.parseAttribute(t, "t", result.attributes))
         failure();
 
     result.addTypes(FunType::get(builder.getContext(),
-                                 DataTypeWrapper::get(builder.getContext(), s.getValue()),
+                                 DataTypeWrapper::get(builder.getContext(), t.getValue()),
                                  FunType::get(builder.getContext(),
-                                         DataTypeWrapper::get(builder.getContext(), s.getValue()),
-                                         DataTypeWrapper::get(builder.getContext(), s.getValue()))));
-
+                                         DataTypeWrapper::get(builder.getContext(), t.getValue()),
+                                         DataTypeWrapper::get(builder.getContext(), t.getValue()))));
     return success();
 }
 
+///mult: {t : data} → t → t → t
 ParseResult parseMultOp(OpAsmParser &parser, OperationState &result) {
     auto &builder = parser.getBuilder();
+    DataTypeAttr t;
 
-    DataTypeAttr s;
-
-    if (parser.parseAttribute(s, "s", result.attributes))
+    //type of factors
+    if (parser.parseAttribute(t, "t", result.attributes))
         failure();
 
     result.addTypes(FunType::get(builder.getContext(),
-                                 DataTypeWrapper::get(builder.getContext(), s.getValue()),
+                                 DataTypeWrapper::get(builder.getContext(), t.getValue()),
                                  FunType::get(builder.getContext(),
-                                              DataTypeWrapper::get(builder.getContext(), s.getValue()),
-                                              DataTypeWrapper::get(builder.getContext(), s.getValue()))));
+                                              DataTypeWrapper::get(builder.getContext(), t.getValue()),
+                                              DataTypeWrapper::get(builder.getContext(), t.getValue()))));
+    return success();
+}
 
+//===----------------------------------------------------------------------===//
+// ReturnOp
+//===----------------------------------------------------------------------===//
+ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
+    auto &builder = parser.getBuilder();
+
+    OpAsmParser::OperandType value;
+    Type type;
+    result.setOperandListToResizable();
+
+    //return value
+    if (parser.parseOperand(value))
+        failure();
+
+    //type of return value
+    //TODO: we do not want to have to give this explicitly
+    if (parser.parseColonType(type))
+        failure();
+
+    if (parser.resolveOperand(value, type, result.operands))
+        failure();
     return success();
 }
 
