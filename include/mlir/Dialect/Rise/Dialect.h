@@ -1,4 +1,3 @@
-//===- Dialect.h - Dialect definition for the Rise IR ----------------------===//
 //
 // Copyright 2019 The MLIR Authors.
 //
@@ -14,14 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // =============================================================================
-//
-// This file implements the IR Dialect for the Rise language.
-// See g3doc/Tutorials/Rise/Ch-3.md for more information.
-//
-//===----------------------------------------------------------------------===//
 
-#ifndef MLIR_TUTORIAL_RISE_DIALECT_H_
-#define MLIR_TUTORIAL_RISE_DIALECT_H_
+#ifndef MLIR_RISE_DIALECT_H_
+#define MLIR_RISE_DIALECT_H_
 
 #include "mlir/IR/Dialect.h"
 
@@ -74,4 +68,4 @@ public:
 
 } //end namespace rise
 } //end namespace mlir
-#endif // MLIR_TUTORIAL_RISE_DIALECT_H_
+#endif // MLIR_RISE_DIALECT_H_

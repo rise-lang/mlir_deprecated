@@ -1,4 +1,4 @@
-//===- Ops.td - Loop operation definitions ---------------*- tablegen -*-===//
+//===- Ops.td - Rise operation definitions ---------------*- tablegen -*-===//
 //
 // Copyright 2019 The MLIR Authors.
 //
@@ -35,20 +35,14 @@ let cppNamespace = "";
 
 // Base class for Rise dialect ops.
 class Rise_Op<string mnemonic, list<OpTrait> traits = []> :
-Op<Rise_Dialect, mnemonic, traits> {
-// For every rise op, there needs to be a:
-//   * void print(OpAsmPrinter *p, ${C++ class of Op} op)
-//   * LogicalResult verify(${C++ class of Op} op)
-//   * ParseResult parse${C++ class of Op}(OpAsmParser *parser,
-//                                         OperationState *result)
-// functions.
-//let printer = [{ return ::print(p, *this); }];
-//let verifier = [{ return ::verify(*this); }];
-//let parser = [{ return ::parse$cppClass(parser, result); }];
-}
+Op<Rise_Dialect, mnemonic, traits> {}
 
 
-///Types
+//===----------------------------------------------------------------------===//
+// Predicates
+//===----------------------------------------------------------------------===//
+
+///Type predicates
 def NatType : Type<CPred<"$_self.isa<Nat>()">, "nat type">;
 
 def IntType : Type<CPred<"$_self.isa<Int>()">, "int type">;
@@ -62,12 +56,7 @@ def FunType : Type<CPred<"$_self.isa<FunType>()">, "fun type">;
 def DataTypeWrapper : Type<CPred<"$_self.isa<DataTypeWrapper>()">, "data fun type">;
 def RiseType : Type<Or<[FunType.predicate, DataTypeWrapper.predicate]>>;
 
-///Attributes
-def RiseTypeAttr : Attr<CPred<"$_self.isa<RiseTypeAttr>()">,
-        "rise type attribute">{
-    let storageType = [{ RiseTypeAttr }];
-    let returnType = [{ RiseType }];
-}
+///Attribute predicates
 def DataTypeAttr : Attr<CPred<"$_self.isa<DataTypeAttr>()">,
         "datatype attribute">{
     let storageType = [{ DataTypeAttr }];
@@ -78,6 +67,11 @@ def NatAttr : Attr<CPred<"$_self.isa<NatAttr>()">,
     let storageType = [{ NatAttr }];
     let returnType = [{ int }];
 }
+
+
+//===----------------------------------------------------------------------===//
+// Rise Operations
+//===----------------------------------------------------------------------===//
 
 def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
     let summary = "literal";
@@ -115,6 +109,9 @@ def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
 
 def MapOp : Rise_Op<"map", [NoSideEffect]> {
     let summary = "map";
+    let description = "This operation returns a function which expects a function from s to t "
+                      "and an array of length n. The function is to be applied to all elements "
+                      "of the array.";
     let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
     let parser = [{ return parse$cppClass(parser, result); }];
 
@@ -123,6 +120,10 @@ def MapOp : Rise_Op<"map", [NoSideEffect]> {
 
 def ReduceOp : Rise_Op<"reduce", [NoSideEffect]> {
     let summary = "reduce";
+    let description = "This operation returns a function which expects an accumulator function "
+                      "from s to t, an accumulator of type t, and an array of size n. It returns "
+                      "a value of type t This can be used to reduce an array of size n with "
+                      "elements of type s to a value of type t";
     let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
     let parser = [{ return parse$cppClass(parser, result); }];
 
@@ -131,8 +132,10 @@ def ReduceOp : Rise_Op<"reduce", [NoSideEffect]> {
 
 def ZipOp : Rise_Op<"zip", [NoSideEffect]> {
     let summary = "rise zip operation";
-    let description = [{
-        }];
+    let description = "This operation returns a function which expects an array of size n with "
+                      "elements of type s and another array of size n and element type t. It "
+                      "returns an array of size n, containing tuples <s,t>. This is used to "
+                      "zip two arrays.";
     let arguments = (ins NatAttr:$n, DataTypeAttr:$s, DataTypeAttr:$t);
     let parser = [{ return parse$cppClass(parser, result); }];
     let results = (outs FunType:$zipFun);
@@ -140,6 +143,8 @@ def ZipOp : Rise_Op<"zip", [NoSideEffect]> {
 
 def TupleOp : Rise_Op<"tuple", [NoSideEffect]> {
     let summary = "rise tuple operation";
+    let description = "This operation returns a function which expects two arguments of type "
+                      "s and t and returns a tuple of type <s,t>. It is used to create tuples.";
     let arguments = (ins DataTypeAttr:$s, DataTypeAttr:$t);
     let results = (outs FunType:$tupleFun);
     let parser = [{ return parse$cppClass(parser, result); }];
@@ -147,6 +152,8 @@ def TupleOp : Rise_Op<"tuple", [NoSideEffect]> {
 
 def FstOp: Rise_Op<"fst", [NoSideEffect]> {
     let summary = "rise fst operation";
+    let description = "This operation returns a function which expects a tuple <s,t> and "
+                      "returns the first element of the tuple.";
     let arguments = (ins DataTypeAttr:$s, DataTypeAttr:$t);
     let results = (outs FunType:$fstFun);
     let parser = [{ return parse$cppClass(parser, result); }];
@@ -154,6 +161,8 @@ def FstOp: Rise_Op<"fst", [NoSideEffect]> {
 
 def SndOp: Rise_Op<"snd", [NoSideEffect]> {
     let summary = "rise snd operation";
+    let description = "This operation returns a function which expects a tuple <s,t> and "
+                  "returns the second element of the tuple.";
     let arguments = (ins DataTypeAttr:$s, DataTypeAttr:$t);
     let results = (outs FunType:$sndFun);
     let parser = [{ return parse$cppClass(parser, result); }];
@@ -161,8 +170,8 @@ def SndOp: Rise_Op<"snd", [NoSideEffect]> {
 
 def ReturnOp : Rise_Op<"return", [Terminator]> {
     let summary = "rise terminator operation";
-    let description = [{
-        }];
+    let description = "This operation is used as a terminator for the region of a lambda. "
+                      "We will experiment with using the standard return operation instead.";
     let arguments = (ins Variadic<AnyType>:$operands);
     let parser = [{ return parse$cppClass(parser, result); }];
     let builders = [OpBuilder<
@@ -176,6 +185,9 @@ def ReturnOp : Rise_Op<"return", [Terminator]> {
 
 def AddOp : Rise_Op<"add", [NoSideEffect]> {
     let summary = "rise add operation";
+    let description = "This operation returns a function which expects two arguments of type "
+                      "t and returns their sum of type t. We will experiment with adopting "
+                      "the standard arithmetics operations.";
     let arguments = (ins DataTypeAttr:$t);
     let results = (outs FunType:$addFun);
     let parser = [{ return parse$cppClass(parser, result); }];
@@ -183,6 +195,9 @@ def AddOp : Rise_Op<"add", [NoSideEffect]> {
 
 def MultOp : Rise_Op<"mult", [NoSideEffect]> {
     let summary = "rise mult operation";
+    let description = "This operation returns a function which expects two arguments of type "
+                  "t and returns their product of type t. We will experiment with adopting "
+                      "the standard arithmetics operations.";
     let arguments = (ins DataTypeAttr:$t);
     let results = (outs FunType:$multFun);
     let parser = [{ return parse$cppClass(parser, result); }];

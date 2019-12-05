@@ -15,21 +15,16 @@
 // limitations under the License.
 // =============================================================================
 //
-// This file implements the dialect for the Rise IR: custom type parsing and
-// operation verification.
+// This file implements the dialect for the Rise IR
 //
 //===----------------------------------------------------------------------===//
 
-#include <iostream>
-#include <sstream>
 #include "mlir/Dialect/Rise/Dialect.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Support/STLExtras.h"
-#include "llvm/ADT/iterator_range.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -143,6 +138,8 @@ RiseType RiseDialect::parseRiseType(StringRef typeString, mlir::Location loc) co
     if (typeString.equals("float")) {
         return DataTypeWrapper::get(getContext(), Float::get(getContext()));
     }
+    emitError(loc, "parsing of Rise type failed.");
+    return nullptr;
 }
 
 DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) const {
@@ -205,12 +202,16 @@ DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) co
     if (typeString.startswith("int")) {
         return Int::get(getContext());
     }
+    emitError(loc, "parsing of Rise DataType failed.");
+    return nullptr;
 }
 
 Nat RiseDialect::parseNat(StringRef typeString, mlir::Location loc) const {
     if (typeString.startswith("nat")) {
         return Nat::get(getContext());
     }
+    emitError(loc, "parsing of Rise nat failed.");
+    return nullptr;
 }
 
 std::string static stringForType(Type type) {
@@ -370,6 +371,8 @@ LiteralAttr RiseDialect::parseLiteralAttribute(StringRef attrString, mlir::Locat
                                  getArrayStructure(getContext(), structureString, elementType, loc),
                 valueString);
     }
+    emitError(loc, "parsing of LiteralAttr failed");
+    return nullptr;
 }
 
 
