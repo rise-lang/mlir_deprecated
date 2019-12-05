@@ -1,10 +1,10 @@
 ### Exploring the work done in this fork
-* checkout development branch
+
 * dot product: `mlir-opt test/Dialect/Rise/dotProduct.mlir`
-* matrix-matrix mutliplication: `mlir-opt test/Dialect/Rise/mm.mlir`
+* matrix mutliplication: `mlir-opt test/Dialect/Rise/mm.mlir`
+
 
 existing README:
-
 # Multi-Level Intermediate Representation Overview
 
 The MLIR project aims to define a common intermediate representation (IR) that
