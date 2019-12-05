@@ -11,8 +11,9 @@
 #include "mlir/IR/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////
-/////////////////////// Custom Types for the Rise Dialect ///////////////////////////
+/////////////////////// Custom Types for the Rise Dialect //////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
 namespace mlir {
 namespace rise {
 
@@ -27,7 +28,6 @@ struct RiseTupleTypeStorage;
 enum RiseTypeKind {
     // The enum starts at the range reserved for this dialect.
             RISE_TYPE = mlir::Type::FIRST_RISE_TYPE,
-            RISE_BASETYPE,
     RISE_FUNTYPE,
     RISE_DATATYPE_WRAPPER,
     RISE_NAT,
@@ -39,6 +39,67 @@ enum RiseTypeKind {
     RISE_ARRAY,
 };
 
+/// RISE type structure:
+///                      +----------+
+///                      |mlir::Type|
+///                      +-+---+--+-+
+///                        ^   ^  ^
+///              +---------+   |  +----------+
+///              |             |             |
+///          +---+----+      +-+-+      +----+---+
+///          |DataType|      |Nat|      |RiseType|
+///          ++------++      +---+      +--+--+--+
+///           ^      ^                     ^  ^
+///           |      |                     |  |
+///   +-------+      +-------+          +--+  +-------+
+///   |       |      |       |          |             |
+/// +-+-+ +---+-+ +--+--+ +--+--+   +---+---+ +-------+-------+
+/// |Int| |Float| |Array| |Tuple|   |FunType| |DataTypeWrapper|
+/// +---+ +-----+ +-----+ +-----+   +-------+ +---------------+
+///
+/// RISE types are divided into three categories that all inherit from mlir::Type:
+///    Data types: include Int, Float, Array and Tuple types.
+///
+///    Natural numbers: Used for tracking the length of the array in the type.
+///
+///    Rise types: Every RISE value has this type which is either a FunType,
+///                representing a RISE function, or a DataTypeWrapper, wrapping a DataType.
+///
+/// These types follow the type system of the \Rise language, but exclude -- for now --
+/// type variables modelled as dependent function types.
+/// This type system prevents function types (which are a sub-type of RiseType)
+/// to be treated like DataTypes and, for example, be stored in an array.
+///
+
+class DataType : public Type::TypeBase<DataType, Type> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
+
+    /// This method is used to get an instance of DataType.
+    static DataType get(mlir::MLIRContext *context) {
+        return Base::get(context, RiseTypeKind::RISE_DATATYPE);
+    }
+};
+
+class Nat : public mlir::Type::TypeBase<Nat, Type> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT; }
+
+    /// This method is used to get an instance of Nat.
+    static Nat get(mlir::MLIRContext *context) {
+        return Base::get(context, RiseTypeKind::RISE_NAT);
+    }
+};
 
 class RiseType : public Type::TypeBase<RiseType, Type> {
 public:
@@ -49,60 +110,95 @@ public:
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
 
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
     static RiseType get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
         return Base::get(context, RiseTypeKind::RISE_TYPE);
     }
 };
 
-
-class FunType : public Type::TypeBase<FunType, RiseType, detail::RiseFunTypeStorage> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_FUNTYPE; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
-
-    static FunType get(mlir::MLIRContext *context,
-                       RiseType input, RiseType output);
-
-    static FunType getChecked(mlir::MLIRContext *context, RiseType input, RiseType output,
-                                 mlir::Location location);
-
-
-    static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
-                                                            mlir::MLIRContext *context,
-                                                            RiseType input, RiseType output);
-
-    RiseType getInput();
-
-    RiseType getOutput();
-};
-
-
-class DataType : public Type::TypeBase<DataType, Type> {
+/// We will experiment with adopting the Integer types of the Standard dialect
+class Int : public Type::TypeBase<Int, DataType> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
 
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_INT; }
 
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static DataType get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, RiseTypeKind::RISE_DATATYPE);
+    /// This method is used to get an instance of Int.
+    static Int get(mlir::MLIRContext *context) {
+        return Base::get(context, RiseTypeKind::RISE_INT);
     }
+};
+
+/// We will experiment with adopting the Float types of the Standard dialect
+class Float : public Type::TypeBase<Float, DataType> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_FLOAT; }
+
+    /// This method is used to get an instance of Float.
+    static Float get(mlir::MLIRContext *context) {
+        return Base::get(context, RiseTypeKind::RISE_FLOAT);
+    }
+};
+
+class ArrayType : public mlir::Type::TypeBase<ArrayType, DataType,
+        detail::ArrayTypeStorage> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
+                                                            mlir::MLIRContext *context,
+                                                            int size, DataType elementType);
+
+    /// This method is used to get an instance of ArrayType.
+    static ArrayType get(mlir::MLIRContext *context,
+                         int size, DataType elementType);
+
+    /// Support method to enable LLVM-style RTTI type casting.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_ARRAY; }
+
+    int getSize();
+    DataType getElementType();
+};
+
+class Tuple : public mlir::Type::TypeBase<Tuple, DataType, detail::RiseTupleTypeStorage> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast.
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_TUPLE; }
+
+    /// This method is used to get an instance of Tuple.
+    static Tuple get(mlir::MLIRContext *context, DataType first, DataType second);
+
+    DataType getFirst();
+    DataType getSecond();
+};
+
+class FunType : public Type::TypeBase<FunType, RiseType, detail::RiseFunTypeStorage> {
+public:
+    /// Inherit some necessary constructors from 'TypeBase'.
+    using Base::Base;
+
+    /// This static method is used to support type inquiry through isa, cast,
+    /// and dyn_cast
+    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_FUNTYPE; }
+
+    /// This method is used to get an instance of FunType
+    static FunType get(mlir::MLIRContext *context,
+                       RiseType input, RiseType output);
+
+    RiseType getInput();
+    RiseType getOutput();
 };
 
 class DataTypeWrapper : public Type::TypeBase<DataTypeWrapper, RiseType, detail::RiseDataTypeWrapperStorage> {
@@ -115,121 +211,13 @@ public:
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE_WRAPPER; }
     static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_TYPE; }
 
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
+    /// This method is used to get an instance of DataTypeWrapper.
     static DataTypeWrapper get(mlir::MLIRContext *context, DataType data);
     DataType getData();
 };
 
-class Int : public Type::TypeBase<Int, DataType> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_INT; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
-
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static Int get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, RiseTypeKind::RISE_INT);
-    }
-};
-
-class Float : public Type::TypeBase<Float, DataType> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_FLOAT; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
-
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static Float get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, RiseTypeKind::RISE_FLOAT);
-    }
-};
-
-class Tuple : public mlir::Type::TypeBase<Tuple, DataType, detail::RiseTupleTypeStorage> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_TUPLE; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
-
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static Tuple get(mlir::MLIRContext *context, DataType first, DataType second);
-    DataType getFirst();
-    DataType getSecond();
-};
-
-/// Type for Rise arrays.
-/// In MLIR Types are reference to immutable and uniqued objects owned by the
-/// MLIRContext. As such `RiseArrayType` only wraps a pointer to an uniqued
-/// instance of `RiseArrayTypeStorage` (defined in our implementation file) and
-/// provides the public facade API to interact with the type.
-class ArrayType : public mlir::Type::TypeBase<ArrayType, DataType,
-        detail::ArrayTypeStorage> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
-                                                            mlir::MLIRContext *context,
-                                                            int size, DataType elementType);
-
-    /// Get the unique instance of this Type from the context.
-    static ArrayType get(mlir::MLIRContext *context,
-                             int size, DataType elementType);
-
-    /// Support method to enable LLVM-style RTTI type casting.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_ARRAY; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
-
-    int getSize();
-    /// Return the type of individual elements in the array.
-    DataType getElementType();
-
-};
-
-class Nat : public mlir::Type::TypeBase<Nat, Type> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_NAT; }
-
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
-    static Nat get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
-        return Base::get(context, RiseTypeKind::RISE_NAT);
-    }
-};
-
-
+/// This wrapper around a Nat is not yet required for our current type structure
+/// but will be in the future
 class NatTypeWrapper : public mlir::Type::TypeBase<NatTypeWrapper, mlir::Type> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
@@ -238,14 +226,9 @@ public:
     /// This static method is used to support type inquiry through isa, cast,
     /// and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT_WRAPPER; }
-    static bool basetype(unsigned kind) { return kind == RiseTypeKind::RISE_DATATYPE; }
 
-    /// This method is used to get an instance of the 'SimpleType'. Given that
-    /// this is a parameterless type, it just needs to take the context for
-    /// uniquing purposes.
+    /// This method is used to get an instance of NatTypeWrapper
     static NatTypeWrapper get(mlir::MLIRContext *context) {
-        // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
-        // of this type.
         return Base::get(context, RiseTypeKind::RISE_NAT_WRAPPER);
     }
 };

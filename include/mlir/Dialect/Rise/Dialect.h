@@ -36,57 +36,39 @@
 #include "mlir/Dialect/Rise/Ops.h"
 
 
-
 namespace mlir {
 class Builder;
 
-
 namespace rise {
 
-/// This is the definition of the Rise dialect. A dialect inherits from
-/// mlir::Dialect and register custom operations and types (in its constructor).
-/// It can also overridding general behavior of dialects exposed as virtual
-/// method, for example regarding verification and parsing/printing.
+/// This is the definition of the Rise dialect.
 class RiseDialect : public mlir::Dialect {
 public:
     explicit RiseDialect(mlir::MLIRContext *ctx);
 
-    /// Parse a type registered to this dialect. Overridding this method is
-    /// required for dialects that have custom types.
-    /// Technically this is only needed to be able to round-trip to textual IR.
+    /// Hook for custom parsing of types
     mlir::Type parseType(DialectAsmParser &parser) const override;
-
     RiseType parseRiseType(StringRef typeString,
             mlir::Location loc) const;
-
     DataType parseDataType(StringRef typeString,
             mlir::Location loc) const;
-
     Nat parseNat(StringRef typeString,
             mlir::Location loc) const;
 
-        /// Print a type registered to this dialect. Overridding this method is
-    /// only required for dialects that have custom types.
-    /// Technically this is only needed to be able to round-trip to textual IR.
+    /// Hook for custom printing of types
     void printType(mlir::Type type, DialectAsmPrinter &) const override;
 
 
+    /// Hook for custom parsing of Attributes
     mlir::Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
-
     LiteralAttr parseLiteralAttribute(StringRef attrString,
             mlir::Location loc) const;
-
-    RiseTypeAttr parseRiseTypeAttribute(StringRef attrString,
-            mlir::Location loc) const;
-
     DataTypeAttr parseDataTypeAttribute(StringRef attrString,
             mlir::Location loc) const;
-
     NatAttr parseNatAttribute(StringRef attrString,
             mlir::Location loc) const;
-    /// Print an attribute registered to this dialect. Note: The type of the
-    /// attribute need not be printed by this method as it is always printed by
-    /// the caller.
+
+    /// Hook for custom printing of Attributes
     void printAttribute(Attribute, DialectAsmPrinter &) const override;
 };
 

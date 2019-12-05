@@ -15,7 +15,7 @@
 // limitations under the License.
 // =============================================================================
 //
-// Defines MLIR loop operations.
+// Defines RISE operations.
 //
 //===----------------------------------------------------------------------===//
 
@@ -66,12 +66,12 @@ def RiseType : Type<Or<[FunType.predicate, DataTypeWrapper.predicate]>>;
 def RiseTypeAttr : Attr<CPred<"$_self.isa<RiseTypeAttr>()">,
         "rise type attribute">{
     let storageType = [{ RiseTypeAttr }];
-    let returnType = [{ mlir::Type }];
+    let returnType = [{ RiseType }];
 }
 def DataTypeAttr : Attr<CPred<"$_self.isa<DataTypeAttr>()">,
         "datatype attribute">{
     let storageType = [{ DataTypeAttr }];
-    let returnType = [{ mlir::Type }];
+    let returnType = [{ DataType }];
 }
 def NatAttr : Attr<CPred<"$_self.isa<NatAttr>()">,
         "nat attribute">{
@@ -93,17 +93,22 @@ def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
 
 def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let summary = "lambda";
-
-
+    let description = "This operation is used for function abstraction in the RISE dialect. "
+                      "It associates a Region of one Block with one of our FunTypes."
+                      "Hence, this operation gives a Region the meaning of a functional lambda expression.";
     let regions = (region SizedRegion<1>:$region);
     let results = (outs FunType:$lambda_result);
-
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 
 def ApplyOp : Rise_Op<"apply", [NoSideEffect]> {
     let summary = "apply";
-    let arguments = (ins FunType:$fun, Variadic<AnyType>:$inputs);
+    let description = "This operation is used for mirroring function application of lambda calculus. "
+                      "The fun can be a RISE lambda or any other value with a RISE function type, "
+                      "such as a RISE pattern or a partially applied function. "
+                      "The type of this operation consequently depends on the fun and the "
+                      "given arguments i.e full or partial application.";
+    let arguments = (ins FunType:$fun, Variadic<AnyType>:$arguments);
     let results = (outs AnyType:$result);
     let parser = [{ return parse$cppClass(parser, result); }];
 }

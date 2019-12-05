@@ -127,7 +127,8 @@ ParseResult parseApplyOp(OpAsmParser &parser, OperationState &result) {
 //===----------------------------------------------------------------------===//
 // ParseLiteralOp
 //===----------------------------------------------------------------------===//
-///Format:
+///This format is not the one used in the paper and will change to it soon.
+///current Format:
 ///         rise.literal #rise.int<42>
 ///         rise.literal #rise.array<2, rise.int, [1,2]>
 ///         rise.literal #rise.array<2.3, !rise.int, [[1,2,3],[4,5,6]]>

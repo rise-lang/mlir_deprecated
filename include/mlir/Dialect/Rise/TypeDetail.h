@@ -25,10 +25,11 @@ namespace rise {
 namespace detail {
 
 
-/// Rise type structure:
+/// This class holds the implementation of the Rise DataTypeWrapper.
 struct RiseDataTypeWrapperStorage : public mlir::TypeStorage {
     RiseDataTypeWrapperStorage(DataType data) : data(data) {}
-
+    /// This defines how we unique this type in the context: Rise DataTypeWrapper types are
+    /// unique by the wrapped DataType
     using KeyTy = DataType;
 
     bool operator==(const KeyTy &key) const {
@@ -51,10 +52,11 @@ struct RiseDataTypeWrapperStorage : public mlir::TypeStorage {
     DataType data;
 };
 
-
+/// This class holds the implementation of the Rise FunType.
 struct RiseFunTypeStorage : public mlir::TypeStorage {
     RiseFunTypeStorage(RiseType input, RiseType output) : input(input), output(output) {}
-
+    /// This defines how we unique this type in the context: Two Rise FunTypes are equal when
+    /// input and output are equal.
     using KeyTy = std::pair<RiseType, RiseType>;
 
     bool operator==(const KeyTy &key) const {
@@ -78,33 +80,23 @@ struct RiseFunTypeStorage : public mlir::TypeStorage {
     RiseType output;
 };
 
-/// This class holds the implementation of the TupleType.
-/// It is intended to be uniqued based on its content and owned by the context.
+/// This class holds the implementation of the Rise Tuple.
 struct RiseTupleTypeStorage : public mlir::TypeStorage {
     RiseTupleTypeStorage(DataType first, DataType second) : first(first), second(second) {}
-    /// This defines how we unique this type in the context: our key contains
-    /// only the shape, a more complex type would have multiple entries in the
-    /// tuple here.
-    /// The element of the tuples usually matches 1-1 the arguments from the
-    /// public `get()` method arguments from the facade.
-
+    /// This defines how we unique this type in the context: Rise Tuple types are unique by the
+    /// types of the two contained elements: "first" and "second"
     using KeyTy = std::pair<DataType, DataType>;
 
     static llvm::hash_code hashKey(const KeyTy &key) {
         return llvm::hash_combine(key.first, key.second);
     }
 
-    /// When the key hash hits an existing type, we compare the shape themselves
-    /// to confirm we have the right type.
     bool operator==(const KeyTy &key) const { return key == KeyTy(first, second); }
-
 
     static KeyTy getKey(DataType first, DataType second) {
         return KeyTy(first, second);
     }
-    /// This is a factory method to create our type storage. It is only
-    /// invoked after looking up the type in the context using the key and not
-    /// finding it.
+
     static RiseTupleTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
                                        const KeyTy &key) {
         return new(allocator.allocate<RiseTupleTypeStorage>()) RiseTupleTypeStorage(key.first, key.second);
@@ -118,34 +110,22 @@ private:
 };
 
 
-/// This class holds the implementation of the RiseArrayType.
-/// It is intended to be uniqued based on its content and owned by the context.
+/// This class holds the implementation of the Rise ArrayType.
 struct ArrayTypeStorage : public mlir::TypeStorage {
     ArrayTypeStorage(int size, DataType elementType) : size(size), elementType(elementType) {}
-    /// This defines how we unique this type in the context: our key contains
-    /// only the shape, a more complex type would have multiple entries in the
-    /// tuple here.
-    /// The element of the tuples usually matches 1-1 the arguments from the
-    /// public `get()` method arguments from the facade.
-
-    //TODO: array should only contain Rise types
+    /// This defines how we unique this type in the context: Array Types are unique by size and type of the elements
     using KeyTy = std::pair<int, DataType>;
 
     static llvm::hash_code hashKey(const KeyTy &key) {
         return llvm::hash_combine(key.first, key.second);
     }
 
-    /// When the key hash hits an existing type, we compare the shape themselves
-    /// to confirm we have the right type.
     bool operator==(const KeyTy &key) const { return key == KeyTy(size, elementType); }
-
 
     static KeyTy getKey(int size, DataType elementType) {
         return KeyTy(size, elementType);
     }
-    /// This is a factory method to create our type storage. It is only
-    /// invoked after looking up the type in the context using the key and not
-    /// finding it.
+
     static ArrayTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
                                             const KeyTy &key) {
         return new(allocator.allocate<ArrayTypeStorage>()) ArrayTypeStorage(key.first, key.second);

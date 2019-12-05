@@ -6,5 +6,5 @@
 using namespace mlir;
 using namespace mlir::rise;
 
-// Static initialization for loop dialect registration.
+// Static initialization for RISE dialect registration.
 static DialectRegistration<rise::RiseDialect> Rise;
