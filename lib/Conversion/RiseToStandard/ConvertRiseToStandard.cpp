@@ -103,13 +103,38 @@ LambdaLowering::matchAndRewrite(LambdaOp lambdaOp, PatternRewriter &rewriter) co
     //Adding the region of the lambdaOp to the FuncOp. Enclosed ops are handled separately
     rewriter.inlineRegionBefore(lambdaOp.region(), *funBody->getParent(), funBody->getParent()->end());
 
-    //TODO: Add a region to the FuncOp, corresponding to the body of the Lambda
-
-
     rewriter.eraseOp(lambdaOp);
 
     return matchSuccess();
 }
+
+///Return
+struct ReturnLowering : public OpRewritePattern<mlir::rise::ReturnOp> {
+    using OpRewritePattern<mlir::rise::ReturnOp>::OpRewritePattern;
+
+    PatternMatchResult matchAndRewrite(mlir::rise::ReturnOp returnOp,
+                                       PatternRewriter &rewriter) const override;
+};
+
+PatternMatchResult
+ReturnLowering::matchAndRewrite(mlir::rise::ReturnOp returnOp, PatternRewriter &rewriter) const {
+    MLIRContext *context = rewriter.getContext();
+
+    rewriter.replaceOpWithNewOp<mlir::ReturnOp>(returnOp);
+    
+//
+//    Location loc = returnOp.getLoc();
+//
+//    mlir::ReturnOp stdReturn = rewriter.create<mlir::ReturnOp>(loc);
+////    rewriter.
+//    rewriter.eraseOp(returnOp);
+
+    return matchSuccess();
+}
+
+
+
+
 
 ///Apply
 struct ApplyLowering : public OpRewritePattern<ApplyOp> {
@@ -119,7 +144,7 @@ struct ApplyLowering : public OpRewritePattern<ApplyOp> {
                                        PatternRewriter &rewriter) const override;
 };
 
-PatternMatchResult matchAndRewrite(ApplyOp applyOp,
+PatternMatchResult ApplyLowering::matchAndRewrite(ApplyOp applyOp,
                                    PatternRewriter &rewriter) const {
     MLIRContext *context = rewriter.getContext();
     Location loc = applyOp.getLoc();
@@ -131,7 +156,7 @@ PatternMatchResult matchAndRewrite(ApplyOp applyOp,
 ///gather all patterns
 void mlir::populateRiseToStdConversionPatterns(
         OwningRewritePatternList &patterns, MLIRContext *ctx) {
-    patterns.insert<LiteralLowering, LambdaLowering>(ctx);
+    patterns.insert<LiteralLowering, LambdaLowering, ReturnLowering>(ctx);
 }
 
 
@@ -165,7 +190,7 @@ void ConvertRiseToStandardPass::runOnModule() {
 
     ConversionTarget target(getContext());
     target.addLegalDialect<StandardOpsDialect>();
-    target.addLegalOp<FuncOp>();
+    target.addLegalOp<FuncOp, ModuleOp, ModuleTerminatorOp>();
 //    target.addDynamicallyLegalOp<FuncOp>(
 //            [&](FuncOp op) { return converter.isSignatureLegal(op.getType()); });
 //    target.addLegalOp<ModuleOp, ModuleTerminatorOp>();

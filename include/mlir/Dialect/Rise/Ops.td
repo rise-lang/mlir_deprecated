@@ -99,7 +99,6 @@ def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
 def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let summary = "lambda";
 
-
     let regions = (region SizedRegion<1>:$region);
     let results = (outs FunType:$lambda_result);
 
@@ -159,7 +158,7 @@ def SndOp: Rise_Op<"snd", [NoSideEffect]> {
     let parser = [{ return parse$cppClass(parser, result); }];
 }
 
-def ReturnOp : Rise_Op<"return", [Terminator]> {
+def ReturnOp : Rise_Op<"return", [Terminator, HasParent<"LambdaOp">]> {
     let summary = "rise terminator operation";
     let description = [{
         }];
