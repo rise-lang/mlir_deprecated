@@ -58,10 +58,37 @@ struct RiseDataTypeWrapperStorage : public mlir::TypeStorage {
 
     static RiseDataTypeWrapperStorage *construct(mlir::TypeStorageAllocator &allocator,
                                          const KeyTy &key) {
-        return new(allocator.allocate<RiseFunTypeStorage>()) RiseDataTypeWrapperStorage(key);
+        return new(allocator.allocate<RiseDataTypeWrapperStorage>()) RiseDataTypeWrapperStorage(key);
     }
 
     DataType data;
+};
+
+/// This class holds the implementation of the Rise NatStorage
+struct RiseNatStorage: public mlir::TypeStorage {
+    RiseNatStorage(int intValue) : intValue(intValue) {}
+    /// This defines how we unique this type in the context: Rise DataTypeWrapper types are
+    /// unique by the wrapped DataType
+    using KeyTy = int;
+
+    bool operator==(const KeyTy &key) const {
+        return key == KeyTy(intValue);
+    }
+
+    static KeyTy getKey(int intValue) {
+        return KeyTy(intValue);
+    }
+
+    static llvm::hash_code hashKey(const KeyTy &key) {
+        return llvm::hash_value(key);
+    }
+
+    static RiseNatStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                                 const KeyTy &key) {
+        return new(allocator.allocate<RiseNatStorage>()) RiseNatStorage(key);
+    }
+
+    int intValue;
 };
 
 /// This class holds the implementation of the Rise FunType.
@@ -124,9 +151,9 @@ private:
 
 /// This class holds the implementation of the Rise ArrayType.
 struct ArrayTypeStorage : public mlir::TypeStorage {
-    ArrayTypeStorage(int size, DataType elementType) : size(size), elementType(elementType) {}
+    ArrayTypeStorage(Nat size, DataType elementType) : size(size), elementType(elementType) {}
     /// This defines how we unique this type in the context: Array Types are unique by size and type of the elements
-    using KeyTy = std::pair<int, DataType>;
+    using KeyTy = std::pair<Nat, DataType>;
 
     static llvm::hash_code hashKey(const KeyTy &key) {
         return llvm::hash_combine(key.first, key.second);
@@ -134,7 +161,7 @@ struct ArrayTypeStorage : public mlir::TypeStorage {
 
     bool operator==(const KeyTy &key) const { return key == KeyTy(size, elementType); }
 
-    static KeyTy getKey(int size, DataType elementType) {
+    static KeyTy getKey(Nat size, DataType elementType) {
         return KeyTy(size, elementType);
     }
 
@@ -143,11 +170,38 @@ struct ArrayTypeStorage : public mlir::TypeStorage {
         return new(allocator.allocate<ArrayTypeStorage>()) ArrayTypeStorage(key.first, key.second);
     }
 
-    int getSize() const { return size; }
+   Nat getSize() const { return size; }
     DataType getElementType() const { return elementType; }
 private:
-    int size;
+    Nat size;
     DataType elementType;
+};
+
+/// This class holds the implementation of the Rise NatWrapper.
+struct RiseNatWrapperStorage : public mlir::TypeStorage {
+    RiseNatWrapperStorage(Nat nat) : nat(nat) {}
+    /// This defines how we unique this type in the context: Rise DataTypeWrapper types are
+    /// unique by the wrapped DataType
+    using KeyTy = Nat;
+
+    bool operator==(const KeyTy &key) const {
+        return key == KeyTy(nat);
+    }
+
+    static KeyTy getKey(Nat nat) {
+        return KeyTy(nat);
+    }
+
+    static llvm::hash_code hashKey(const KeyTy &key) {
+        return llvm::hash_value(key.getAsOpaquePointer());
+    }
+
+    static RiseNatWrapperStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                                 const KeyTy &key) {
+        return new(allocator.allocate<RiseNatWrapperStorage>()) RiseNatWrapperStorage(key);
+    }
+
+    Nat nat;
 };
 
 } //end namespace detail

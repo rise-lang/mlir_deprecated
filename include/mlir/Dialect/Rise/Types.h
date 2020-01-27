@@ -34,6 +34,8 @@ struct ArrayTypeStorage;
 struct RiseFunTypeStorage;
 struct RiseDataTypeWrapperStorage;
 struct RiseTupleTypeStorage;
+struct RiseNatWrapperStorage;
+struct RiseNatStorage;
 }
 
 /// LLVM-style RTTI: one entry per subclass to allow dyn_cast/isa.
@@ -77,7 +79,7 @@ enum RiseTypeKind {
 ///    Rise types: Every RISE value has this type which is either a FunType,
 ///                representing a RISE function, or a DataTypeWrapper, wrapping a DataType.
 ///
-/// These types follow the type system of the \Rise language, but exclude -- for now --
+/// These types follow the type system of the Rise language, but exclude -- for now --
 /// type variables modelled as dependent function types.
 /// This type system prevents function types (which are a sub-type of RiseType)
 /// to be treated like DataTypes and, for example, be stored in an array.
@@ -98,7 +100,7 @@ public:
     }
 };
 
-class Nat : public mlir::Type::TypeBase<Nat, Type> {
+class Nat : public mlir::Type::TypeBase<Nat, Type, detail::RiseNatStorage> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -108,9 +110,10 @@ public:
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT; }
 
     /// This method is used to get an instance of Nat.
-    static Nat get(mlir::MLIRContext *context) {
-        return Base::get(context, RiseTypeKind::RISE_NAT);
-    }
+    static Nat get(mlir::MLIRContext *context, int intValue);
+
+    int getIntValue();
+
 };
 
 class RiseType : public Type::TypeBase<RiseType, Type> {
@@ -167,16 +170,16 @@ public:
 
     static mlir::LogicalResult verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                             mlir::MLIRContext *context,
-                                                            int size, DataType elementType);
+                                                            Nat size, DataType elementType);
 
     /// This method is used to get an instance of ArrayType.
     static ArrayType get(mlir::MLIRContext *context,
-                         int size, DataType elementType);
+                         Nat size, DataType elementType);
 
     /// Support method to enable LLVM-style RTTI type casting.
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_ARRAY; }
 
-    int getSize();
+    Nat getSize();
     DataType getElementType();
 };
 
@@ -225,12 +228,13 @@ public:
 
     /// This method is used to get an instance of DataTypeWrapper.
     static DataTypeWrapper get(mlir::MLIRContext *context, DataType data);
-    DataType getData();
+
+    DataType getDataType();
 };
 
 /// This wrapper around a Nat is not yet required for our current type structure
 /// but will be in the future
-class NatTypeWrapper : public mlir::Type::TypeBase<NatTypeWrapper, mlir::Type> {
+class NatTypeWrapper : public mlir::Type::TypeBase<NatTypeWrapper, DataType, detail::RiseNatWrapperStorage> {
 public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -240,9 +244,9 @@ public:
     static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT_WRAPPER; }
 
     /// This method is used to get an instance of NatTypeWrapper
-    static NatTypeWrapper get(mlir::MLIRContext *context) {
-        return Base::get(context, RiseTypeKind::RISE_NAT_WRAPPER);
-    }
+    static NatTypeWrapper get(mlir::MLIRContext *context, Nat nat);
+
+    Nat getNat();
 };
 
 } //end namespace rise

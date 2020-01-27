@@ -76,14 +76,14 @@ struct DataTypeAttributeStorage : public mlir::AttributeStorage {
 
 /// Implementation of the NatAttr
 struct NatAttributeStorage : public mlir::AttributeStorage {
-    NatAttributeStorage(int value) : value(value) {}
-    using KeyTy = int;
+    NatAttributeStorage(Nat value) : value(value) {}
+    using KeyTy = Nat;
 
     /// Key equality function.
     bool operator==(const KeyTy &key) const { return key == KeyTy(value); }
 
     static llvm::hash_code hashKey(const KeyTy &key) {
-        return llvm::hash_value(key);
+        return llvm::hash_value(key.getAsOpaquePointer());
     }
 
     /// Construct a new storage instance.
@@ -92,7 +92,7 @@ struct NatAttributeStorage : public mlir::AttributeStorage {
         return new(allocator.allocate<NatAttributeStorage>()) NatAttributeStorage(key);
     }
 
-    int value;
+    Nat value; //TODO: This is the culprit for the current errors. Make the rest conform to this. Add a getValue method to Nat
 };
 }
 }

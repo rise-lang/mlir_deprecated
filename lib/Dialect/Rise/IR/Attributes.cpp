@@ -52,10 +52,10 @@ DataType DataTypeAttr::getValue() const { return getImpl()->value; }
 // NatAttr
 //===----------------------------------------------------------------------===//
 
-NatAttr NatAttr::get(MLIRContext *context, int value) {
+NatAttr NatAttr::get(MLIRContext *context, Nat value) {
     return Base::get(context, RiseAttributeKind::NAT_ATTR, value);
 }
-int NatAttr::getValue() const { return getImpl()->value; }
+Nat NatAttr::getValue() const { return getImpl()->value; }
 
 
 } //end namespace rise

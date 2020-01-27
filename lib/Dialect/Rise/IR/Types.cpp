@@ -40,12 +40,24 @@ namespace rise {
 // DataTypeWrapper
 //===----------------------------------------------------------------------===//
 
-DataType DataTypeWrapper::getData() {
+DataType DataTypeWrapper::getDataType() {
     return getImpl()->data;
 }
 
 DataTypeWrapper DataTypeWrapper::get(mlir::MLIRContext *context, DataType data) {
     return Base::get(context, RiseTypeKind::RISE_DATATYPE_WRAPPER, data);
+}
+
+//===----------------------------------------------------------------------===//
+// Nat
+//===----------------------------------------------------------------------===//
+
+int Nat::getIntValue() {
+    return getImpl()->intValue;
+}
+
+Nat Nat::get(mlir::MLIRContext *context, int intValue) {
+    return Base::get(context, RiseTypeKind::RISE_NAT, intValue);
 }
 
 //===----------------------------------------------------------------------===//
@@ -82,27 +94,28 @@ DataType rise::Tuple::getSecond() {
 // ArrayType
 //===----------------------------------------------------------------------===//
 
-int ArrayType::getSize() { return getImpl()->getSize(); }
+Nat ArrayType::getSize() { return getImpl()->getSize(); }
 
 DataType ArrayType::getElementType() {
     return getImpl()->getElementType();
 }
 
 ArrayType ArrayType::get(mlir::MLIRContext *context,
-                                 int size, DataType elementType) {
+                                 Nat size, DataType elementType) {
     return Base::get(context, RiseTypeKind::RISE_ARRAY, size, elementType);
 }
 
 mlir::LogicalResult ArrayType::verifyConstructionInvariants(llvm::Optional<mlir::Location> loc,
                                                              mlir::MLIRContext *context,
-                                                             int size, DataType elementType) {
+                                                             Nat size, DataType elementType) {
     ///For some reason this method is called without a valid location in StorageUniquerSupport
+    ///Hence we can not provide proper location information on error
 
-    if (!(size > 0)) {
+    if (!(size.getIntValue() > 0)) {
         if (loc) {
-            emitError(loc.getValue(), "Arrays have to contain at least 1 element");
+            emitError(loc.getValue(), "ArrayType must have a size of at least 1");
         } else {
-            emitError(UnknownLoc::get(context), "Arrays have to contain at least 1 element");
+            emitError(UnknownLoc::get(context), "ArrayType must have a size of at least 1");
         }
         return mlir::failure();
     }

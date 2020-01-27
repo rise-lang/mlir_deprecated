@@ -166,12 +166,13 @@ DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) co
         elementTypeString = elementTypeString.trim();
 
         int size = std::stoi(sizeString);
+        Nat natSize = Nat::get(getContext(), size);
 
         if (elementTypeString.startswith("!rise."))
             elementTypeString.consume_front("!rise.");
         DataType elementType = parseDataType(elementTypeString, loc);
 
-        return ArrayType::get(getContext(), size, elementType);
+        return ArrayType::get(getContext(), natSize, elementType);
     }
     if (typeString.startswith("tuple<")) {
         if (!typeString.consume_front("tuple<") || !typeString.consume_back(">")) {
@@ -208,7 +209,12 @@ DataType RiseDialect::parseDataType(StringRef typeString, mlir::Location loc) co
 
 Nat RiseDialect::parseNat(StringRef typeString, mlir::Location loc) const {
     if (typeString.startswith("nat")) {
-        return Nat::get(getContext());
+        if(!typeString.consume_front("<") || !typeString.consume_back(">")) {
+            emitError(loc, "rise.nat delimiter <...> mismatch");
+            return nullptr;
+        }
+        int size = std::stoi(typeString);
+        return Nat::get(getContext(), size);
     }
     emitError(loc, "parsing of Rise nat failed.");
     return nullptr;
@@ -233,7 +239,7 @@ std::string static stringForType(Type type) {
                 + stringForType(type.dyn_cast<Tuple>().getSecond()) + ">";
         }
         case RiseTypeKind::RISE_ARRAY: {
-            return "array<" + std::to_string(type.dyn_cast<ArrayType>().getSize()) + ", "
+            return "array<" + std::to_string(type.dyn_cast<ArrayType>().getSize().getIntValue()) + ", "
             + stringForType(type.dyn_cast<ArrayType>().getElementType()) + ">";
         }
         case RiseTypeKind::RISE_FUNTYPE: {
@@ -241,7 +247,7 @@ std::string static stringForType(Type type) {
             + stringForType(type.dyn_cast<FunType>().getOutput()) + ">";
         }
        case RiseTypeKind::RISE_DATATYPE_WRAPPER: {
-            return "data<" + stringForType(type.dyn_cast<DataTypeWrapper>().getData()) + ">";
+            return "data<" + stringForType(type.dyn_cast<DataTypeWrapper>().getDataType()) + ">";
         }
     }
 }
@@ -290,8 +296,7 @@ NatAttr RiseDialect::parseNatAttribute(StringRef attrString,
         return nullptr;
     }
     int natValue = std::stoi(attrString);
-
-    return NatAttr::get(getContext(), natValue);
+    return NatAttr::get(getContext(), Nat::get(getContext(), natValue));
 }
 
 /// recursive utiliy function to determine the structure of an Array from a string
@@ -302,9 +307,9 @@ DataType static getArrayStructure(mlir::MLIRContext *context, StringRef structur
     std::tie(currentDim, restStructure) = structureString.split('.');
 
     if (restStructure == "") {
-        return ArrayType::get(context, std::stoi(currentDim), elementType);
+        return ArrayType::get(context, Nat::get(context, std::stoi(currentDim)), elementType);
     } else {
-        return ArrayType::get(context, std::stoi(currentDim),
+        return ArrayType::get(context, Nat::get(context, std::stoi(currentDim)),
                 getArrayStructure(context, restStructure, elementType, loc));
     }
 }
@@ -385,7 +390,7 @@ std::string static stringForAttribute(Attribute attribute) {
             return "data<" + stringForType(attribute.dyn_cast<DataTypeAttr>().getValue()) + ">";
         }
         case RiseAttributeKind::NAT_ATTR: {
-            return "nat<" + std::to_string(attribute.dyn_cast<NatAttr>().getValue()) + ">";
+            return "nat<" + std::to_string(attribute.dyn_cast<NatAttr>().getValue().getIntValue()) + ">";
         }
         case RiseAttributeKind::LITERAL_ATTR: {
             switch (attribute.dyn_cast<LiteralAttr>().getType().getKind()) {

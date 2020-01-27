@@ -65,7 +65,7 @@ def DataTypeAttr : Attr<CPred<"$_self.isa<DataTypeAttr>()">,
 def NatAttr : Attr<CPred<"$_self.isa<NatAttr>()">,
         "nat attribute">{
     let storageType = [{ NatAttr }];
-    let returnType = [{ int }];
+    let returnType = [{ Nat }];
 }
 
 
@@ -88,7 +88,7 @@ def LiteralOp : Rise_Op<"literal", [NoSideEffect]> {
 def LambdaOp : Rise_Op<"lambda", [SingleBlockImplicitTerminator<"ReturnOp">]> {
     let summary = "lambda";
     let description = "This operation is used for function abstraction in the RISE dialect. "
-                      "It associates a Region of one Block with one of our FunTypes."
+                      "It associates a Region of one Block with a RISE FunType."
                       "Hence, this operation gives a Region the meaning of a functional lambda expression.";
     let regions = (region SizedRegion<1>:$region);
     let results = (outs FunType:$lambda_result);

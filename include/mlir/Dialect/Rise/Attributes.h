@@ -82,9 +82,9 @@ class NatAttr : public Attribute::AttrBase<NatAttr, Attribute, detail::NatAttrib
 public:
     using Base::Base;
 
-    static NatAttr get(MLIRContext *context, int value);
+    static NatAttr get(MLIRContext *context, Nat value);
 
-    int getValue() const;
+    Nat getValue() const;
 
     /// Methods for support type inquiry through isa, cast, and dyn_cast.
     static bool kindof(unsigned kind) { return kind == RiseAttributeKind::NAT_ATTR; }
