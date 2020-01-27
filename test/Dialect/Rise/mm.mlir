@@ -41,4 +41,3 @@
     }
     %m1 = rise.map #rise.nat<4> #rise.array<4, !rise.int> #rise.array<4, !rise.int>
     %result = rise.apply %m1: !rise.fun<fun<data<array<4, int>> -> data<array<4, int>>> -> fun<data<array<4, array<4, int>>> -> data<array<4, array<4, int>>>>>, %m1fun, %A
-//    rise.return %result : !rise.data<array<4, array<4, int>>>
