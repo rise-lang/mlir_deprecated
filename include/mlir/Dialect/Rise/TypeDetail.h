@@ -177,33 +177,6 @@ private:
     DataType elementType;
 };
 
-/// This class holds the implementation of the Rise NatWrapper.
-struct RiseNatWrapperStorage : public mlir::TypeStorage {
-    RiseNatWrapperStorage(Nat nat) : nat(nat) {}
-    /// This defines how we unique this type in the context: Rise DataTypeWrapper types are
-    /// unique by the wrapped DataType
-    using KeyTy = Nat;
-
-    bool operator==(const KeyTy &key) const {
-        return key == KeyTy(nat);
-    }
-
-    static KeyTy getKey(Nat nat) {
-        return KeyTy(nat);
-    }
-
-    static llvm::hash_code hashKey(const KeyTy &key) {
-        return llvm::hash_value(key.getAsOpaquePointer());
-    }
-
-    static RiseNatWrapperStorage *construct(mlir::TypeStorageAllocator &allocator,
-                                                 const KeyTy &key) {
-        return new(allocator.allocate<RiseNatWrapperStorage>()) RiseNatWrapperStorage(key);
-    }
-
-    Nat nat;
-};
-
 } //end namespace detail
 } //end namespace rise
 } //end namespace mlir

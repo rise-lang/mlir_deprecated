@@ -34,7 +34,6 @@ struct ArrayTypeStorage;
 struct RiseFunTypeStorage;
 struct RiseDataTypeWrapperStorage;
 struct RiseTupleTypeStorage;
-struct RiseNatWrapperStorage;
 struct RiseNatStorage;
 }
 
@@ -45,7 +44,6 @@ enum RiseTypeKind {
     RISE_FUNTYPE,
     RISE_DATATYPE_WRAPPER,
     RISE_NAT,
-    RISE_NAT_WRAPPER,
     RISE_DATATYPE,
     RISE_INT,
     RISE_FLOAT,
@@ -230,23 +228,6 @@ public:
     static DataTypeWrapper get(mlir::MLIRContext *context, DataType data);
 
     DataType getDataType();
-};
-
-/// This wrapper around a Nat is not yet required for our current type structure
-/// but will be in the future
-class NatTypeWrapper : public mlir::Type::TypeBase<NatTypeWrapper, DataType, detail::RiseNatWrapperStorage> {
-public:
-    /// Inherit some necessary constructors from 'TypeBase'.
-    using Base::Base;
-
-    /// This static method is used to support type inquiry through isa, cast,
-    /// and dyn_cast.
-    static bool kindof(unsigned kind) { return kind == RiseTypeKind::RISE_NAT_WRAPPER; }
-
-    /// This method is used to get an instance of NatTypeWrapper
-    static NatTypeWrapper get(mlir::MLIRContext *context, Nat nat);
-
-    Nat getNat();
 };
 
 } //end namespace rise
