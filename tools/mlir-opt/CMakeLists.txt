@@ -21,7 +21,6 @@ set(LIBS
   MLIRAffineToStandard
   MLIRLoopsToGPU
   MLIRLinalgToLLVM
-  
   MLIRLoopToStandard
   MLIREDSC
   MLIRFxpMathOps
@@ -39,6 +38,7 @@ set(LIBS
   MLIRQuantizerTransforms
   MLIRQuantOps
   MLIRROCDLIR
+  RISE
   MLIRSPIRV
   MLIRStandardToSPIRVTransforms
   MLIRSPIRVTransforms
